@@ -8,12 +8,19 @@ A Clojure client library for [Transkribus](https://github.com/Transkribus).
 (require '[transkript.core :as tk])
 (tk/connect (tk/load-config "resources/config.edn"))
 
-(map :colName (tk/collections))
-(map :title (tk/documents 8487))
-(map :pageNr (tk/pages 8487 53260))
-(map :name (tk/models 8487))
+(tk/select [:colId :colName] (tk/collections))
+(tk/use-collection 8487)
+
+(tk/select [:docId :title] (tk/documents))
+(tk/select [:pageId :pageNr] (tk/pages 27808))
+
+(tk/select [:description :name :htrId] (tk/models))
+(tk/run-model 133 53260 "1-10")
+
 (map :jobId (tk/jobs))
-(:state (tk/job 318824)  )
+(:state (tk/job 318824))
+(tk/cancel-job 318824)
+(tk/train-model 8487 "foo" "English" "bar" [[38118 1308829] [38118 1308834]] [[38118 1308841]])
 
 (tk/close)
 ```
