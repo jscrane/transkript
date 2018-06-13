@@ -134,12 +134,6 @@
   [htrId]
   (reset! model htrId))
 
-; this version of runCitLabHtr isn't working right now
-(defn- dsd [docId pages]
-  (reduce (fn [dd page]
-            (doto dd (.addPage (DocumentSelectionDescriptor$PageDescriptor. page))))
-          (DocumentSelectionDescriptor. docId) pages))
-
 (defn run-model
   "Runs a model."
   ([colId htrId docId pages]
@@ -150,8 +144,9 @@
   ([docId pages]
    (run-model @collection @model docId pages)))
 
-(defn transcripts [docId pgnums]
-  "Selects transcripts corresponding to the pages in the given document for training."
+(defn transcripts
+  "Selects transcripts corresponding to the pages in the given document."
+  [docId pgnums]
   (let [ps (set pgnums)
         ts (->> docId
                 (pages)
