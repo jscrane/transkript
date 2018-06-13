@@ -61,7 +61,8 @@ A Clojure client library for [Transkribus](https://github.com/Transkribus).
 
 (tk/set-language "German")
 =>
-{:username "jscrane@gmail.com", :password "XXXXXXXXX", :server "https://transkribus.eu/TrpServer", :language "German"}(tk/train-model "new model" "some description" (tk/transcripts 38118 (range 1 4)) (tk/transcripts 38118 [5 6]))
+{:username "jscrane@gmail.com", :password "XXXXXXXXX", :server "https://transkribus.eu/TrpServer", :language "German"}
+(tk/train-model "new model" "some description" (tk/transcripts 38118 (range 1 4)) (tk/transcripts 38118 [5 6]))
 => 345866
 (tk/status 345866)
 => :RUNNING
