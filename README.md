@@ -42,12 +42,22 @@ A Clojure client library for [Transkribus](https://github.com/Transkribus).
  {:name "Renehan_M2", :htrId 2117}
  {:name "German Kurrent (Reichsgericht)", :htrId 78})
 
-(tk/run-model 133 27808 "1-10")
+(tk/use-model 133)
+=> 133
+(tk/run-model 27808 "1-10")
+=> 345885
+(tk/status 345885)
+=> :RUNNING
+(tk/cancel 345885)
+=> nil
+(tk/status 345885)
+=> :CANCELED
 
-(map :jobId (tk/jobs))
-(:state (tk/job 318824))
-(tk/cancel-job 318824)
-(tk/train-model 8487 "foo" "English" "bar" [[38118 1308829] [38118 1308834]] [[38118 1308841]])
+(tk/set-language "English")
+(tk/train-model "new model" "some description" (tk/transcripts 38118 (range 1 4)) (tk/transcripts 38118 [5 6]))
+=> 345866
+(tk/status 345866)
+=> :RUNNING
 
 (tk/close)
 ```

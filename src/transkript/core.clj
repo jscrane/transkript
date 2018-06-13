@@ -1,6 +1,6 @@
 (ns transkript.core
   (:import (eu.transkribus.client.connection TrpServerConn)
-           (eu.transkribus.core.model.beans TrpTranscriptStatistics TrpTotalTranscriptStatistics CitLabHtrTrainConfig DocumentSelectionDescriptor TrpDoc)
+           (eu.transkribus.core.model.beans TrpTranscriptStatistics TrpTotalTranscriptStatistics CitLabHtrTrainConfig DocumentSelectionDescriptor DocumentSelectionDescriptor$PageDescriptor)
            (java.net URL)
            (java.util Date ArrayList))
   (:require [clojure.edn :as edn])
@@ -8,6 +8,8 @@
 
 (def conn (atom nil))
 (def collection (atom nil))
+(def model (atom nil))
+(def language (atom nil))
 
 (defn load-config
   "loads configuration information"
@@ -105,29 +107,55 @@
        (from-java)
        (remove-nils)))
 
-(defn cancel-job
+(defn cancel
   "cancels a running job"
   [jobId]
   (->> jobId
        (str)
        (.killJob @conn)))
 
+(defn status
+  "gets a job's status"
+  [jobId]
+  (keyword (:state (job jobId))))
+
+(defn use-model
+  "sets the default model"
+  [htrId]
+  (reset! model htrId))
+
 (defn run-model
   "runs a model"
-  ([htrId colId docId pages]
+  ([colId htrId docId pages]
    (Integer/parseInt (.runCitLabHtr @conn colId docId pages htrId nil)))
   ([htrId docId pages]
-   (run-model htrId @collection docId pages)))
+   (run-model @collection htrId docId pages))
+  ([docId pages]
+   (run-model @collection @model docId pages)))
 
-(defn- dsds [coll]
-  (doto (ArrayList.)
-    (.addAll (map (fn [[docId pageId]] (DocumentSelectionDescriptor. docId pageId)) coll))))
+(defn- dsd [[docId pageId tsId]]
+  (doto (DocumentSelectionDescriptor. docId)
+    (.addPage (DocumentSelectionDescriptor$PageDescriptor. pageId tsId))))
+
+(defn transcripts [docId pgnums]
+  "selects transcripts corresponding to the pages in the given document for training"
+  (let [ps (set pgnums)
+        ts (->> docId
+                (pages)
+                (filter (comp ps :pageNr))
+                (map :currentTranscript))]
+    (map (fn [t] (map t [:docId :pageId :tsId])) ts)))
+
+(defn set-language
+  "sets the language for training models"
+  [lang]
+  (reset! language lang))
 
 (defn train-model
   "trains a model"
-  [colId modelName language description trainDocIds testDocIds & opts]
-  (let [tr (dsds trainDocIds) tt (dsds testDocIds)]
-    (->> {:colId colId :modelName modelName :train tr :test tt :description description :language language}
+  [modelName description train test & opts]
+  (let [tr (map dsd train) ts (map dsd test)]
+    (->> {:colId @collection :language @language :modelName modelName :train tr :test ts :description description}
          (merge opts)
          (to-java CitLabHtrTrainConfig)
          (.runCitLabHtrTraining @conn)
