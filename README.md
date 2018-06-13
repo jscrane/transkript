@@ -16,6 +16,7 @@ A Clojure client library for [Transkribus](https://github.com/Transkribus).
  {:colId 15187, :colName "jscrane@gmail.com Collection"})
 
 (tk/use-collection 8487)
+=> 8487
 (tk/select [:docId :title] (tk/documents))
 =>
 ({:docId 27808, :title "Test Document"}
@@ -52,6 +53,8 @@ A Clojure client library for [Transkribus](https://github.com/Transkribus).
 => nil
 (tk/status 345885)
 => :CANCELED
+(tk/run-model 27808 [1 3 5])
+=> 346093
 
 (tk/set-language "English")
 (tk/train-model "new model" "some description" (tk/transcripts 38118 (range 1 4)) (tk/transcripts 38118 [5 6]))

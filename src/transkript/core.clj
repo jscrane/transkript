@@ -124,18 +124,21 @@
   [htrId]
   (reset! model htrId))
 
+; this version of runCitLabHtr isn't working right now
+(defn- dsd [docId pages]
+  (reduce (fn [dd page]
+            (doto dd (.addPage (DocumentSelectionDescriptor$PageDescriptor. page))))
+          (DocumentSelectionDescriptor. docId) pages))
+
 (defn run-model
   "runs a model"
   ([colId htrId docId pages]
-   (Integer/parseInt (.runCitLabHtr @conn colId docId pages htrId nil)))
+   (let [pgs (if (string? pages) pages (clojure.string/join "," pages))]
+     (Integer/parseInt (.runCitLabHtr @conn colId docId pgs htrId nil))))
   ([htrId docId pages]
    (run-model @collection htrId docId pages))
   ([docId pages]
    (run-model @collection @model docId pages)))
-
-(defn- dsd [[docId pageId tsId]]
-  (doto (DocumentSelectionDescriptor. docId)
-    (.addPage (DocumentSelectionDescriptor$PageDescriptor. pageId tsId))))
 
 (defn transcripts [docId pgnums]
   "selects transcripts corresponding to the pages in the given document for training"
@@ -151,10 +154,14 @@
   [lang]
   (reset! language lang))
 
+(defn- dsdt [[docId pageId tsId]]
+  (doto (DocumentSelectionDescriptor. docId)
+    (.addPage (DocumentSelectionDescriptor$PageDescriptor. pageId tsId))))
+
 (defn train-model
   "trains a model"
   [modelName description train test & opts]
-  (let [tr (map dsd train) ts (map dsd test)]
+  (let [tr (map dsdt train) ts (map dsdt test)]
     (->> {:colId @collection :language @language :modelName modelName :train tr :test ts :description description}
          (merge opts)
          (to-java CitLabHtrTrainConfig)
