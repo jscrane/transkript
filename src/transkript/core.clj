@@ -12,18 +12,18 @@
 (def language (atom nil))
 
 (defn load-config
-  "loads configuration information"
+  "Loads configuration information from a file."
   [filename]
   (edn/read-string (slurp filename)))
 
 (defn connect
-  "connects to remote transkribus server"
+  "Connects to remote transkribus server."
   [{#^String user :username #^String pass :password #^String server :server}]
   (reset! conn (TrpServerConn. server user pass))
   @conn)
 
 (defn close
-  "closes connection to transkribus server"
+  "Closes connection to transkribus server."
   []
   (.close @conn))
 
@@ -39,7 +39,7 @@
   (apply dissoc m (for [[k v] m :when (nil? v)] k)))
 
 (defn collections
-  "gets the user's collections"
+  "Returns the user's collections."
   ([{:keys [index number sort-field sort-direction], :or {index 0 number -1}}]
    (->> (.getAllCollections @conn index number sort-field sort-direction)
         (from-java)
@@ -47,17 +47,17 @@
   ([] (collections {})))
 
 (defn select
-  "utility wrapper around select-keys"
+  "For each map in coll, returns a subset of its keys."
   [keys coll]
   (map #(select-keys % keys) coll))
 
 (defn use-collection
-  "sets colId as the default collection"
+  "Sets the default collection."
   [colId]
   (reset! collection colId))
 
 (defn documents
-  "gets the documents belonging to a collection"
+  "Gets the documents belonging to a collection."
   ([colId]
    (->> colId
         (.getAllDocs @conn)
@@ -68,7 +68,7 @@
    (documents @collection)))
 
 (defn pages
-  "gets a document's pages"
+  "Gets a document's pages."
   ([colId docId numTranscripts]
    (->> (.getTrpDoc @conn colId docId numTranscripts)
         (.getPages)
@@ -81,17 +81,19 @@
    (pages @collection docId)))
 
 (defn models
-  "gets the models belonging to a collection"
-  ([colId]
-   (->> (.getHtrs @conn colId "CITlab")
+  "Gets the models belonging to a collection."
+  ([colId provider]
+   (->> (.getHtrs @conn colId provider)
         (from-java)
         (map remove-nils)
         (map #(dissoc % :cerString :cerTestString))))
+  ([colId]
+   (models colId "CITlab"))
   ([]
    (models @collection)))
 
 (defn jobs
-  "gets the user's jobs"
+  "Gets the user's jobs."
   ([{:keys [status type docId index number sort-field sort-direction], :or {index 0 number -1}}]
    (->> (.getJobs @conn true status type docId index number sort-field sort-direction)
         (from-java)
@@ -99,7 +101,7 @@
   ([] (jobs {})))
 
 (defn job
-  "gets a single job's details"
+  "Gets a job's details."
   [jobId]
   (->> jobId
        (str)
@@ -108,19 +110,19 @@
        (remove-nils)))
 
 (defn cancel
-  "cancels a running job"
+  "Cancels a running job."
   [jobId]
   (->> jobId
        (str)
        (.killJob @conn)))
 
 (defn status
-  "gets a job's status"
+  "Gets a job's status."
   [jobId]
   (keyword (:state (job jobId))))
 
 (defn use-model
-  "sets the default model"
+  "Sets the default model."
   [htrId]
   (reset! model htrId))
 
@@ -131,7 +133,7 @@
           (DocumentSelectionDescriptor. docId) pages))
 
 (defn run-model
-  "runs a model"
+  "Runs a model."
   ([colId htrId docId pages]
    (let [pgs (if (string? pages) pages (clojure.string/join "," pages))]
      (Integer/parseInt (.runCitLabHtr @conn colId docId pgs htrId nil))))
@@ -141,7 +143,7 @@
    (run-model @collection @model docId pages)))
 
 (defn transcripts [docId pgnums]
-  "selects transcripts corresponding to the pages in the given document for training"
+  "Selects transcripts corresponding to the pages in the given document for training."
   (let [ps (set pgnums)
         ts (->> docId
                 (pages)
@@ -150,7 +152,7 @@
     (map (fn [t] (map t [:docId :pageId :tsId])) ts)))
 
 (defn set-language
-  "sets the language for training models"
+  "Sets the default language for training."
   [lang]
   (reset! language lang))
 
@@ -159,7 +161,7 @@
     (.addPage (DocumentSelectionDescriptor$PageDescriptor. pageId tsId))))
 
 (defn train-model
-  "trains a model"
+  "Trains a model."
   [modelName description train test & opts]
   (let [tr (map dsdt train) ts (map dsdt test)]
     (->> {:colId @collection :language @language :modelName modelName :train tr :test ts :description description}
