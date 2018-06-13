@@ -6,7 +6,10 @@ A Clojure client library for [Transkribus](https://github.com/Transkribus).
 
 ```clojure
 (require '[transkript.core :as tk])
-(tk/connect (tk/load-config "resources/config.edn"))
+(tk/load-config "resources/config.edn")
+=>
+{:username "jscrane@gmail.com", :password "XXXXXXXXX", :server "https://transkribus.eu/TrpServer", :language "English"}
+(tk/connect)
 
 (tk/select [:colId :colName] (tk/collections))
 =>
@@ -56,8 +59,9 @@ A Clojure client library for [Transkribus](https://github.com/Transkribus).
 (tk/run-model 27808 [1 3 5])
 => 346093
 
-(tk/set-language "English")
-(tk/train-model "new model" "some description" (tk/transcripts 38118 (range 1 4)) (tk/transcripts 38118 [5 6]))
+(tk/set-language "German")
+=>
+{:username "jscrane@gmail.com", :password "XXXXXXXXX", :server "https://transkribus.eu/TrpServer", :language "German"}(tk/train-model "new model" "some description" (tk/transcripts 38118 (range 1 4)) (tk/transcripts 38118 [5 6]))
 => 345866
 (tk/status 345866)
 => :RUNNING

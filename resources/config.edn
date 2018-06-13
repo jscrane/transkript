@@ -2,4 +2,5 @@
  :username "jscrane@gmail.com"
  :password "XXXXXXXXXXXX"
  :server   "https://transkribus.eu/TrpServer"
+ :language "English"
  }

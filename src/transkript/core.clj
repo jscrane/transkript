@@ -2,25 +2,33 @@
   (:import (eu.transkribus.client.connection TrpServerConn)
            (eu.transkribus.core.model.beans TrpTranscriptStatistics TrpTotalTranscriptStatistics CitLabHtrTrainConfig DocumentSelectionDescriptor DocumentSelectionDescriptor$PageDescriptor)
            (java.net URL)
-           (java.util Date ArrayList))
+           (java.util Date))
   (:require [clojure.edn :as edn])
   (:use [clojure.java.data]))
 
 (def conn (atom nil))
 (def collection (atom nil))
 (def model (atom nil))
-(def language (atom nil))
+(def config (atom {}))
+
+(defn set-config
+  "Sets configuration information."
+  [m]
+  (reset! config m))
 
 (defn load-config
   "Loads configuration information from a file."
   [filename]
-  (edn/read-string (slurp filename)))
+  (set-config (edn/read-string (slurp filename))))
 
 (defn connect
   "Connects to remote transkribus server."
-  [{#^String user :username #^String pass :password #^String server :server}]
-  (reset! conn (TrpServerConn. server user pass))
-  @conn)
+  ([params]
+   (let [m (merge @config params)
+         [#^String s #^String u #^String p] (map m [:server :username :password])]
+     (reset! conn (TrpServerConn. s u p))))
+  ([]
+   (connect @config)))
 
 (defn close
   "Closes connection to transkribus server."
@@ -154,7 +162,7 @@
 (defn set-language
   "Sets the default language for training."
   [lang]
-  (reset! language lang))
+  (reset! config (assoc @config :language lang)))
 
 (defn- dsdt [[docId pageId tsId]]
   (doto (DocumentSelectionDescriptor. docId)
@@ -164,7 +172,7 @@
   "Trains a model."
   [modelName description train test & opts]
   (let [tr (map dsdt train) ts (map dsdt test)]
-    (->> {:colId @collection :language @language :modelName modelName :train tr :test ts :description description}
+    (->> {:colId @collection :language (:language @config) :modelName modelName :train tr :test ts :description description}
          (merge opts)
          (to-java CitLabHtrTrainConfig)
          (.runCitLabHtrTraining @conn)
