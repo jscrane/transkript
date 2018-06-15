@@ -155,6 +155,22 @@
   ([docId pages]
    (run-model @collection @model docId pages)))
 
+(comment
+  (defn dsd [pages]
+    (doto (DocumentSelectionDescriptor. (:docId (first pages)))
+      (.setPages (map #(DocumentSelectionDescriptor$PageDescriptor. (:pageId %)) pages))))
+
+  (defn run-model
+    "Runs a model."
+    ([colId htrId pages dict]
+     (Integer/parseInt (.runCitLabHtr @conn colId (dsd pages) htrId dict)))
+    ([colId htrId pages]
+     (run-model colId htrId pages @dictionary))
+    ([htrId pages]
+     (run-model @collection htrId pages))
+    ([pages]
+     (run-model @collection @model pages))))
+
 (defn transcripts
   "Selects transcripts corresponding to the pages in the given document."
   [docId pgnums]
