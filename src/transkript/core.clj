@@ -3,7 +3,8 @@
            (eu.transkribus.core.model.beans TrpTranscriptStatistics TrpTotalTranscriptStatistics CitLabHtrTrainConfig DocumentSelectionDescriptor DocumentSelectionDescriptor$PageDescriptor)
            (java.net URL)
            (java.util Date))
-  (:require [clojure.edn :as edn])
+  (:require [clojure.edn :as edn]
+            [clojure.string :as str])
   (:use [clojure.java.data]))
 
 (def conn (atom nil))
@@ -56,8 +57,9 @@
 
 (defn select
   "For each map in coll, returns a subset of its keys."
-  [keys coll]
-  (map #(select-keys % keys) coll))
+  [k coll]
+  (let [keys (if (keyword? k) [k] k)]
+    (map #(select-keys % keys) coll)))
 
 (defn use-collection
   "Sets the default collection."
@@ -87,6 +89,12 @@
    (pages colId docId -1))
   ([docId]
    (pages @collection docId)))
+
+(defn pages-numbered
+  "Selects numbered pages."
+  [pgnums pages]
+  (let [ps (set pgnums)]
+    (filter (comp ps :pageNr) pages)))
 
 (defn models
   "Gets the models belonging to a collection."
@@ -137,7 +145,7 @@
 (defn run-model
   "Runs a model."
   ([colId htrId docId pages]
-   (let [pgs (if (string? pages) pages (clojure.string/join "," pages))]
+   (let [pgs (if (string? pages) pages (str/join "," pages))]
      (Integer/parseInt (.runCitLabHtr @conn colId docId pgs htrId nil))))
   ([htrId docId pages]
    (run-model @collection htrId docId pages))
@@ -147,19 +155,35 @@
 (defn transcripts
   "Selects transcripts corresponding to the pages in the given document."
   [docId pgnums]
-  (let [ps (set pgnums)
-        ts (->> docId
-                (pages)
-                (filter (comp ps :pageNr))
-                (map :currentTranscript))]
-    (map (fn [t] (map t [:docId :pageId :tsId])) ts)))
+  (->> docId
+       (pages)
+       (pages-numbered pgnums)
+       (map :transcripts)))
+
+(defn with-status
+  "Selects transcripts with status."
+  [status transcripts]
+  (let [s (into #{} (map name (if (keyword? status) [status] status)))]
+    (filter (comp s :status) transcripts)))
+
+(defn newest
+  "Selects newest transcript."
+  [transcripts]
+  (last (sort-by :timestamp transcripts)))
+
+(defn gt-transcripts
+  "Selects the newest transcripts labelled GT from the pages in the given document."
+  [docId pgnums]
+  (->> (transcripts docId pgnums)
+       (map (partial with-status :GT))
+       (map newest)))
 
 (defn set-language
   "Sets the default language for training."
   [lang]
   (reset! config (assoc @config :language lang)))
 
-(defn- dsdt [[docId pageId tsId]]
+(defn- dsdt [{:keys [docId pageId tsId]}]
   (doto (DocumentSelectionDescriptor. docId)
     (.addPage (DocumentSelectionDescriptor$PageDescriptor. pageId tsId))))
 
@@ -172,3 +196,10 @@
          (to-java CitLabHtrTrainConfig)
          (.runCitLabHtrTraining @conn)
          (Integer/parseInt))))
+
+(defn accuracy
+  "Computes word- and character-error rates between two transcripts."
+  [refKey hypKey]
+  (->> (str/split (.computeWer @conn refKey hypKey) #"\n")
+       (partition 2)
+       (reduce (fn [m [a b]] (assoc m (keyword a) (Float/parseFloat b))) {})))

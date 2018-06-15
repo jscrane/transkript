@@ -38,6 +38,9 @@ A Clojure client library for [Transkribus](https://github.com/Transkribus).
  {:pageId 798150, :pageNr 2}
  {:pageId 798151, :pageNr 3})
 
+(tk/select :pageId (tk/pages-numbered [1 2 3] (tk/pages 27808)))
+=> ({:pageId 798149} {:pageId 798150} {:pageId 798151})
+
 (tk/select [:name :htrId] (tk/models))
 =>
 ({:name "English Writing M1", :htrId 133}
@@ -62,7 +65,10 @@ A Clojure client library for [Transkribus](https://github.com/Transkribus).
 (tk/set-language "German")
 =>
 {:username "jscrane@gmail.com", :password "XXXXXXXXX", :server "https://transkribus.eu/TrpServer", :language "German"}
-(tk/train-model "new model" "some description" (tk/transcripts 38118 (range 1 4)) (tk/transcripts 38118 [5 6]))
+
+(tk/select :status (tk/gt-transcripts 38118 (range 1 4)))
+=> ({:status "GT"} {:status "GT"} {:status "GT"})
+(tk/train-model "new model" "some description" (tk/gt-transcripts 38118 (range 1 4)) (tk/gt-transcripts 38118 [5 6]))
 => 345866
 (tk/status 345866)
 => :RUNNING
