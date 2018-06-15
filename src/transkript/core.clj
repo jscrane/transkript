@@ -10,6 +10,7 @@
 (def conn (atom nil))
 (def collection (atom nil))
 (def model (atom nil))
+(def dictionary (atom nil))
 (def config (atom {}))
 
 (defn set-config
@@ -96,6 +97,32 @@
   (let [ps (set pgnums)]
     (filter (comp ps :pageNr) pages)))
 
+(defn jobs
+  "Gets the user's jobs."
+  ([{:keys [status type docId index number sort-field sort-direction], :or {index 0 number -1 sort-field :created}}]
+   (->> (.getJobs @conn true status type docId index number (name sort-field) sort-direction)
+        (from-java)
+        (map remove-nils)))
+  ([] (jobs {})))
+
+(defn job
+  "Gets a job's details."
+  [jobId]
+  (->> (str jobId)
+       (.getJob @conn)
+       (from-java)
+       (remove-nils)))
+
+(defn cancel
+  "Cancels a running job."
+  [jobId]
+  (.killJob @conn (str jobId)))
+
+(defn status
+  "Gets a job's status."
+  [jobId]
+  (keyword (:state (job jobId))))
+
 (defn models
   "Gets the models belonging to a collection."
   ([colId provider]
@@ -108,45 +135,21 @@
   ([]
    (models @collection)))
 
-(defn jobs
-  "Gets the user's jobs."
-  ([{:keys [status type docId index number sort-field sort-direction], :or {index 0 number -1}}]
-   (->> (.getJobs @conn true status type docId index number sort-field sort-direction)
-        (from-java)
-        (map remove-nils)))
-  ([] (jobs {})))
-
-(defn job
-  "Gets a job's details."
-  [jobId]
-  (->> jobId
-       (str)
-       (.getJob @conn)
-       (from-java)
-       (remove-nils)))
-
-(defn cancel
-  "Cancels a running job."
-  [jobId]
-  (->> jobId
-       (str)
-       (.killJob @conn)))
-
-(defn status
-  "Gets a job's status."
-  [jobId]
-  (keyword (:state (job jobId))))
-
 (defn use-model
   "Sets the default model."
   [htrId]
   (reset! model htrId))
 
+(defn use-dictionary
+  "Sets the default dictionary."
+  [dict]
+  (reset! dictionary dict))
+
 (defn run-model
   "Runs a model."
   ([colId htrId docId pages]
    (let [pgs (if (string? pages) pages (str/join "," pages))]
-     (Integer/parseInt (.runCitLabHtr @conn colId docId pgs htrId nil))))
+     (Integer/parseInt (.runCitLabHtr @conn colId docId pgs htrId @dictionary))))
   ([htrId docId pages]
    (run-model @collection htrId docId pages))
   ([docId pages]
@@ -155,8 +158,7 @@
 (defn transcripts
   "Selects transcripts corresponding to the pages in the given document."
   [docId pgnums]
-  (->> docId
-       (pages)
+  (->> (pages docId)
        (pages-numbered pgnums)
        (map :transcripts)))
 
