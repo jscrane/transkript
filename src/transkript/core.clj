@@ -98,7 +98,7 @@
   (let [ps (set pgnums)]
     (filter (comp ps :pageNr) pages)))
 
-(defn dsdt [{:keys [docId pageId tsId], :or {tsId (int -1)}}]
+(defn- dsdt [{:keys [docId pageId tsId], :or {tsId (int -1)}}]
   (doto (DocumentSelectionDescriptor. docId)
     (.addPage (DocumentSelectionDescriptor$PageDescriptor. pageId tsId))))
 
@@ -163,32 +163,20 @@
   [dict]
   (reset! dictionary dict))
 
+(defn- dsd [pages]
+  (doto (DocumentSelectionDescriptor. (:docId (first pages)))
+    (.setPages (map #(DocumentSelectionDescriptor$PageDescriptor. (:pageId %) (int -1)) pages))))
+
 (defn run-model
   "Runs a model."
-  ([colId htrId docId pages]
-   (let [pgs (if (string? pages) pages (str/join "," pages))]
-     (Integer/parseInt (.runCitLabHtr @conn colId docId pgs htrId @dictionary))))
-  ([htrId docId pages]
-   (run-model @collection htrId docId pages))
-  ([docId pages]
-   (run-model @collection @model docId pages)))
-
-; FIXME: test this, and replace run-model above
-(comment
-  (defn dsd [pages]
-    (doto (DocumentSelectionDescriptor. (:docId (first pages)))
-      (.setPages (map #(DocumentSelectionDescriptor$PageDescriptor. (:pageId %) -1) pages))))
-
-  (defn run-model
-    "Runs a model."
-    ([colId htrId pages dict]
-     (Integer/parseInt (.runCitLabHtr @conn colId (dsd pages) htrId dict)))
-    ([colId htrId pages]
-     (run-model colId htrId pages @dictionary))
-    ([htrId pages]
-     (run-model @collection htrId pages))
-    ([pages]
-     (run-model @collection @model pages))))
+  ([colId htrId pages dict]
+   (Integer/parseInt (.runCitLabHtr @conn colId (dsd pages) htrId dict)))
+  ([colId htrId pages]
+   (run-model colId htrId pages @dictionary))
+  ([htrId pages]
+   (run-model @collection htrId pages))
+  ([pages]
+   (run-model @collection @model pages)))
 
 (defn transcripts
   "Selects transcripts corresponding to the pages in the given document."

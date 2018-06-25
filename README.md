@@ -51,7 +51,7 @@ A Clojure client library for [Transkribus](https://github.com/Transkribus).
 
 (tk/use-model 133)
 => 133
-(tk/run-model 27808 "1-10")
+(tk/run-model (tk/pages-numbered [1 2 3] (tk/pages 27808)))
 => 345885
 (tk/status 345885)
 => :RUNNING
