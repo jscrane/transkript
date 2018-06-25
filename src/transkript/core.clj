@@ -8,10 +8,6 @@
             [clojure.string :as str])
   (:use [clojure.java.data]))
 
-(def conn (atom nil))
-(def collection (atom nil))
-(def model (atom nil))
-(def dictionary (atom nil))
 (def config (atom {}))
 
 (defn set-config
@@ -24,19 +20,58 @@
   [filename]
   (set-config (edn/read-string (slurp filename))))
 
-(defn connect
-  "Connects to remote transkribus server."
+(def conn (atom nil))
+
+(defn- get-conn []
+  (if @conn
+    @conn
+    (throw (IllegalStateException. "not logged in"))))
+
+(defn login
+  "Login to remote transkribus server."
   ([params]
    (let [m (merge @config params)
          [#^String s #^String u #^String p] (map m [:server :username :password])]
      (reset! conn (TrpServerConn. s u p))))
   ([]
-   (connect @config)))
+   (login @config)))
 
-(defn close
-  "Closes connection to transkribus server."
+(defn logout
+  "Logout from remote transkribus server."
   []
-  (.close @conn))
+  (.close (get-conn))
+  (reset! conn nil))
+
+(def collection (atom nil))
+
+(defn- get-collection []
+  (if @collection
+    @collection
+    (throw (IllegalStateException. "no default collection"))))
+
+(defn use-collection
+  "Sets the default collection."
+  [colId]
+  (reset! collection colId))
+
+(def model (atom nil))
+
+(defn- get-model []
+  (if @model
+    @model
+    (throw (IllegalStateException. "no default model"))))
+
+(defn use-model
+  "Sets the default model."
+  [htrId]
+  (reset! model htrId))
+
+(def dictionary (atom nil))
+
+(defn use-dictionary
+  "Sets the default dictionary."
+  [dict]
+  (reset! dictionary dict))
 
 (defmethod from-java TrpTranscriptStatistics [_])
 
@@ -52,7 +87,7 @@
 (defn collections
   "Returns the user's collections."
   ([{:keys [index number sort-field sort-direction], :or {index 0 number -1}}]
-   (->> (.getAllCollections @conn index number sort-field sort-direction)
+   (->> (.getAllCollections (get-conn) index number sort-field sort-direction)
         (from-java)
         (map remove-nils)))
   ([] (collections {})))
@@ -63,26 +98,21 @@
   (let [keys (if (keyword? k) [k] k)]
     (map #(select-keys % keys) coll)))
 
-(defn use-collection
-  "Sets the default collection."
-  [colId]
-  (reset! collection colId))
-
 (defn documents
   "Gets the documents belonging to a collection."
   ([colId]
    (->> colId
-        (.getAllDocs @conn)
+        (.getAllDocs (get-conn))
         (from-java)
         (map remove-nils)
         (map #(dissoc % :colList))))
   ([]
-   (documents @collection)))
+   (documents (get-collection))))
 
 (defn pages
   "Gets a document's pages."
   ([colId docId numTranscripts]
-   (->> (.getTrpDoc @conn colId docId numTranscripts)
+   (->> (.getTrpDoc (get-conn) colId docId numTranscripts)
         (.getPages)
         (from-java)
         (map remove-nils)
@@ -90,7 +120,7 @@
   ([colId docId]
    (pages colId docId -1))
   ([docId]
-   (pages @collection docId)))
+   (pages (get-collection) docId)))
 
 (defn pages-numbered
   "Selects numbered pages."
@@ -105,7 +135,7 @@
 (defn jobs
   "Gets the user's jobs."
   ([{:keys [status type docId index number sort-field sort-direction], :or {index 0 number -1 sort-field :created}}]
-   (->> (.getJobs @conn true status type docId index number (name sort-field) sort-direction)
+   (->> (.getJobs (get-conn) true status type docId index number (name sort-field) sort-direction)
         (from-java)
         (map remove-nils)))
   ([] (jobs {})))
@@ -114,14 +144,14 @@
   "Gets a job's details."
   [jobId]
   (->> (str jobId)
-       (.getJob @conn)
+       (.getJob (get-conn))
        (from-java)
        (remove-nils)))
 
 (defn cancel
   "Cancels a running job."
   [jobId]
-  (.killJob @conn (str jobId)))
+  (.killJob (get-conn) (str jobId)))
 
 (defn status
   "Gets a job's status."
@@ -134,34 +164,24 @@
   ([colId method pages {:keys [block-seg line-seg word-seg], :or {block-seg false line-seg false word-seg false}}]
    (let [dsds (map dsdt pages)
          mm (str (name method) "LaJob")]
-     (->> (.analyzeLayout @conn colId dsds block-seg line-seg word-seg false false mm (ParameterMap.))
+     (->> (.analyzeLayout (get-conn) colId dsds block-seg line-seg word-seg false false mm (ParameterMap.))
           (from-java)
           (map :jobId)
           (map #(Integer/parseInt %)))))
   ([method pages params]
-   (analyse-layout @collection method pages params)))
+   (analyse-layout (get-collection) method pages params)))
 
 (defn models
   "Gets the models belonging to a collection."
   ([colId provider]
-   (->> (.getHtrs @conn colId provider)
+   (->> (.getHtrs (get-conn) colId provider)
         (from-java)
         (map remove-nils)
         (map #(dissoc % :cerString :cerTestString))))
   ([colId]
    (models colId "CITlab"))
   ([]
-   (models @collection)))
-
-(defn use-model
-  "Sets the default model."
-  [htrId]
-  (reset! model htrId))
-
-(defn use-dictionary
-  "Sets the default dictionary."
-  [dict]
-  (reset! dictionary dict))
+   (models (get-collection))))
 
 (defn- dsd [pages]
   (doto (DocumentSelectionDescriptor. (:docId (first pages)))
@@ -170,13 +190,13 @@
 (defn run-model
   "Runs a model."
   ([colId htrId pages dict]
-   (Integer/parseInt (.runCitLabHtr @conn colId (dsd pages) htrId dict)))
+   (Integer/parseInt (.runCitLabHtr (get-conn) colId (dsd pages) htrId dict)))
   ([colId htrId pages]
    (run-model colId htrId pages @dictionary))
   ([htrId pages]
-   (run-model @collection htrId pages))
+   (run-model (get-collection) htrId pages))
   ([pages]
-   (run-model @collection @model pages)))
+   (run-model (get-collection) (get-model) pages)))
 
 (defn transcripts
   "Selects transcripts corresponding to the pages in the given document."
@@ -212,15 +232,15 @@
   "Trains a model."
   [modelName description train test & opts]
   (let [tr (map dsdt train) ts (map dsdt test)]
-    (->> {:colId @collection :language (:language @config) :modelName modelName :train tr :test ts :description description}
+    (->> {:colId (get-collection) :language (:language @config) :modelName modelName :train tr :test ts :description description}
          (merge opts)
          (to-java CitLabHtrTrainConfig)
-         (.runCitLabHtrTraining @conn)
+         (.runCitLabHtrTraining (get-conn))
          (Integer/parseInt))))
 
 (defn accuracy
   "Computes word- and character-error rates between two transcripts."
   [refKey hypKey]
-  (->> (str/split (.computeWer @conn refKey hypKey) #"\n")
+  (->> (str/split (.computeWer (get-conn) refKey hypKey) #"\n")
        (partition 2)
        (reduce (fn [m [a b]] (assoc m (keyword a) (Float/parseFloat b))) {})))

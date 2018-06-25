@@ -9,7 +9,7 @@ A Clojure client library for [Transkribus](https://github.com/Transkribus).
 (tk/load-config "resources/config.edn")
 =>
 {:username "jscrane@gmail.com", :password "XXXXXXXXX", :server "https://transkribus.eu/TrpServer", :language "English"}
-(tk/connect)
+(tk/login)
 
 (tk/select [:colId :colName] (tk/collections))
 =>
@@ -76,7 +76,7 @@ A Clojure client library for [Transkribus](https://github.com/Transkribus).
 (tk/status 345866)
 => :RUNNING
 
-(tk/close)
+(tk/logout)
 ```
 
 ## License
