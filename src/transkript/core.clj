@@ -1,6 +1,7 @@
 (ns transkript.core
   (:import (eu.transkribus.client.connection TrpServerConn)
            (eu.transkribus.core.model.beans TrpTranscriptStatistics TrpTotalTranscriptStatistics CitLabHtrTrainConfig DocumentSelectionDescriptor DocumentSelectionDescriptor$PageDescriptor)
+           (eu.transkribus.core.model.beans.rest ParameterMap)
            (java.net URL)
            (java.util Date))
   (:require [clojure.edn :as edn]
@@ -97,6 +98,10 @@
   (let [ps (set pgnums)]
     (filter (comp ps :pageNr) pages)))
 
+(defn dsdt [{:keys [docId pageId tsId], :or {tsId (int -1)}}]
+  (doto (DocumentSelectionDescriptor. docId)
+    (.addPage (DocumentSelectionDescriptor$PageDescriptor. pageId tsId))))
+
 (defn jobs
   "Gets the user's jobs."
   ([{:keys [status type docId index number sort-field sort-direction], :or {index 0 number -1 sort-field :created}}]
@@ -122,6 +127,19 @@
   "Gets a job's status."
   [jobId]
   (keyword (:state (job jobId))))
+
+;; method may be one of :CITlabAdvanced, :Cvl or :NcsrOld
+(defn analyse-layout
+  "Runs layout analysis."
+  ([colId method pages {:keys [block-seg line-seg word-seg], :or {block-seg false line-seg false word-seg false}}]
+   (let [dsds (map dsdt pages)
+         mm (str (name method) "LaJob")]
+     (->> (.analyzeLayout @conn colId dsds block-seg line-seg word-seg false false mm (ParameterMap.))
+          (from-java)
+          (map :jobId)
+          (map #(Integer/parseInt %)))))
+  ([method pages params]
+   (analyse-layout @collection method pages params)))
 
 (defn models
   "Gets the models belonging to a collection."
@@ -155,10 +173,11 @@
   ([docId pages]
    (run-model @collection @model docId pages)))
 
+; FIXME: test this, and replace run-model above
 (comment
   (defn dsd [pages]
     (doto (DocumentSelectionDescriptor. (:docId (first pages)))
-      (.setPages (map #(DocumentSelectionDescriptor$PageDescriptor. (:pageId %)) pages))))
+      (.setPages (map #(DocumentSelectionDescriptor$PageDescriptor. (:pageId %) -1) pages))))
 
   (defn run-model
     "Runs a model."
@@ -200,10 +219,6 @@
   "Sets the default language for training."
   [lang]
   (reset! config (assoc @config :language lang)))
-
-(defn- dsdt [{:keys [docId pageId tsId]}]
-  (doto (DocumentSelectionDescriptor. docId)
-    (.addPage (DocumentSelectionDescriptor$PageDescriptor. pageId tsId))))
 
 (defn train-model
   "Trains a model."

@@ -62,6 +62,9 @@ A Clojure client library for [Transkribus](https://github.com/Transkribus).
 (tk/run-model 27808 [1 3 5])
 => 346093
 
+(tk/analyse-layout :CITlabAdvanced (tk/pages 50811) {:block-seg true, :line-seg true})
+=> (351020)
+
 (tk/set-language "German")
 =>
 {:username "jscrane@gmail.com", :password "XXXXXXXXX", :server "https://transkribus.eu/TrpServer", :language "German"}
