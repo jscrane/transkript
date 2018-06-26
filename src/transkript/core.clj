@@ -82,6 +82,8 @@
 
 (defmethod from-java Date [o] (str o))
 
+(defmethod from-java Boolean [o] (Boolean/valueOf o))
+
 (defn- remove-nils [m]
   (apply dissoc m (for [[k v] m :when (nil? v)] k)))
 
