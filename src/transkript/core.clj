@@ -52,8 +52,8 @@
 
 (defn use-collection
   "Sets the default collection."
-  [colId]
-  (reset! collection colId))
+  [coll]
+  (reset! collection coll))
 
 (def model (atom nil))
 
@@ -64,8 +64,8 @@
 
 (defn use-model
   "Sets the default model."
-  [htrId]
-  (reset! model htrId))
+  [model]
+  (reset! model model))
 
 (def dictionary (atom nil))
 
@@ -101,10 +101,13 @@
   (let [keys (if (keyword? k) [k] k)]
     (map #(select-keys % keys) coll)))
 
+(defn- colId [coll]
+  (if (integer? coll) coll (:colId coll)))
+
 (defn documents
   "Gets the documents belonging to a collection."
-  ([colId]
-   (->> colId
+  ([coll]
+   (->> (colId coll)
         (.getAllDocs (get-conn))
         (from-java)
         (map remove-nils)
@@ -112,28 +115,27 @@
   ([]
    (documents (get-collection))))
 
+(defn- docId [doc]
+  (if (integer? doc) doc (:docId doc)))
+
 (defn pages
   "Gets a document's pages."
-  ([colId docId numTranscripts]
-   (->> (.getTrpDoc (get-conn) colId docId numTranscripts)
+  ([coll doc numTranscripts]
+   (->> (.getTrpDoc (get-conn) (colId coll) (docId doc) numTranscripts)
         (.getPages)
         (from-java)
         (map remove-nils)
         (map #(dissoc % :transcriptsStr :image))))
-  ([colId docId]
-   (pages colId docId -1))
-  ([docId]
-   (pages (get-collection) docId)))
+  ([coll doc]
+   (pages coll doc -1))
+  ([doc]
+   (pages (get-collection) doc)))
 
 (defn pages-numbered
   "Selects numbered pages."
   [pgnums pages]
   (let [ps (set pgnums)]
     (filter (comp ps :pageNr) pages)))
-
-(defn- dsdt [{:keys [docId pageId tsId], :or {tsId (int -1)}}]
-  (doto (DocumentSelectionDescriptor. docId)
-    (.addPage (DocumentSelectionDescriptor$PageDescriptor. pageId tsId))))
 
 (defn jobs
   "Gets the user's jobs."
@@ -177,13 +179,17 @@
   ([jobIds]
    (wait jobIds 3000)))
 
+(defn- dsdt [{:keys [docId pageId tsId], :or {tsId (int -1)}}]
+  (doto (DocumentSelectionDescriptor. docId)
+    (.addPage (DocumentSelectionDescriptor$PageDescriptor. pageId tsId))))
+
 ;; method may be one of :CITlabAdvanced, :Cvl or :NcsrOld
 (defn analyse-layout
   "Runs layout analysis."
-  ([colId method pages {:keys [block-seg line-seg word-seg], :or {block-seg false line-seg false word-seg false}}]
+  ([coll method pages {:keys [block-seg line-seg word-seg], :or {block-seg false line-seg false word-seg false}}]
    (let [dsds (map dsdt pages)
          mm (str (name method) "LaJob")]
-     (->> (.analyzeLayout (get-conn) colId dsds block-seg line-seg word-seg false false mm (ParameterMap.))
+     (->> (.analyzeLayout (get-conn) (colId coll) dsds block-seg line-seg word-seg false false mm (ParameterMap.))
           (from-java)
           (map :jobId)
           (map #(Integer/parseInt %)))))
@@ -192,13 +198,13 @@
 
 (defn models
   "Gets the models belonging to a collection."
-  ([colId provider]
-   (->> (.getHtrs (get-conn) colId provider)
+  ([coll provider]
+   (->> (.getHtrs (get-conn) (colId coll) provider)
         (from-java)
         (map remove-nils)
         (map #(dissoc % :cerString :cerTestString))))
-  ([colId]
-   (models colId "CITlab"))
+  ([coll]
+   (models coll "CITlab"))
   ([]
    (models (get-collection))))
 
@@ -206,21 +212,24 @@
   (doto (DocumentSelectionDescriptor. (:docId (first pages)))
     (.setPages (map #(DocumentSelectionDescriptor$PageDescriptor. (:pageId %) (int -1)) pages))))
 
+(defn- htrId [model]
+  (if (integer? model) model (:htrId model)))
+
 (defn run-model
   "Runs a model."
-  ([colId htrId pages dict]
-   (Integer/parseInt (.runCitLabHtr (get-conn) colId (dsd pages) htrId dict)))
-  ([colId htrId pages]
-   (run-model colId htrId pages @dictionary))
-  ([htrId pages]
-   (run-model (get-collection) htrId pages))
+  ([coll model pages dict]
+   (Integer/parseInt (.runCitLabHtr (get-conn) (colId coll) (dsd pages) (htrId model) dict)))
+  ([coll model pages]
+   (run-model coll model pages @dictionary))
+  ([model pages]
+   (run-model (get-collection) model pages))
   ([pages]
    (run-model (get-collection) (get-model) pages)))
 
 (defn transcripts
   "Selects transcripts corresponding to the pages in the given document."
-  [docId pgnums]
-  (->> (pages docId)
+  [doc pgnums]
+  (->> (pages doc)
        (pages-numbered pgnums)
        (map :transcripts)))
 
@@ -237,8 +246,8 @@
 
 (defn gt-transcripts
   "Selects the newest transcripts labelled GT from the pages in the given document."
-  [docId pgnums]
-  (->> (transcripts docId pgnums)
+  [doc pgnums]
+  (->> (transcripts doc pgnums)
        (map (partial with-status :GT))
        (map newest)))
 
@@ -251,7 +260,7 @@
   "Trains a model."
   [modelName description train test & opts]
   (let [tr (map dsdt train) ts (map dsdt test)]
-    (->> {:colId (get-collection) :language (:language @config) :modelName modelName :train tr :test ts :description description}
+    (->> {:colId (colId (get-collection)) :language (:language @config) :modelName modelName :train tr :test ts :description description}
          (merge opts)
          (to-java CitLabHtrTrainConfig)
          (.runCitLabHtrTraining (get-conn))
