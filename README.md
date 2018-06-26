@@ -64,6 +64,8 @@ A Clojure client library for [Transkribus](https://github.com/Transkribus).
 
 (tk/analyse-layout :CITlabAdvanced (tk/pages 50811) {:block-seg true, :line-seg true})
 => (351020)
+(tk/select [:state :jobIdAsInt] (tk/wait [351020 350984]))
+=> ({:state "FINISHED", :jobIdAsInt 351020} {:state "FAILED", :jobIdAsInt 350984})
 
 (tk/set-language "German")
 =>

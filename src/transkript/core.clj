@@ -158,6 +158,22 @@
   [jobId]
   (keyword (:state (job jobId))))
 
+(defn wait
+  "Waits for jobs to complete."
+  ([jobIds millis]
+   (loop [jobIds (if (integer? jobIds) [jobIds] jobIds)
+          finished []]
+     (let [jobs (map job jobIds)
+           u (map :jobIdAsInt (filter (comp not :finished) jobs))
+           f (concat finished (filter :finished jobs))]
+       (if (empty? u)
+         f
+         (do
+           (Thread/sleep millis)
+           (recur u f))))))
+  ([jobIds]
+   (wait jobIds 3000)))
+
 ;; method may be one of :CITlabAdvanced, :Cvl or :NcsrOld
 (defn analyse-layout
   "Runs layout analysis."
