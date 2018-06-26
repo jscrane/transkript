@@ -6,7 +6,8 @@
            (java.util Date))
   (:require [clojure.edn :as edn]
             [clojure.string :as str])
-  (:use [clojure.java.data]))
+  (:use [clojure.java.data]
+        [clojure.java.io :as io]))
 
 (def config (atom {}))
 
@@ -18,7 +19,7 @@
 (defn load-config
   "Loads configuration information from a file."
   [filename]
-  (set-config (edn/read-string (slurp filename))))
+  (set-config (edn/read-string (slurp (io/resource filename)))))
 
 (def conn (atom nil))
 

@@ -6,7 +6,7 @@ A Clojure client library for [Transkribus](https://github.com/Transkribus).
 
 ```clojure
 (require '[transkript.core :as tk])
-(tk/load-config "resources/config.edn")
+(tk/load-config "config.edn")
 =>
 {:username "jscrane@gmail.com", :password "XXXXXXXXX", :server "https://transkribus.eu/TrpServer", :language "English"}
 (tk/login {:password "my password"})
