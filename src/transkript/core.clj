@@ -242,7 +242,7 @@
 (defn newest
   "Selects newest transcript."
   [transcripts]
-  (last (sort-by :timestamp transcripts)))
+  (first (sort-by :timestamp > transcripts)))
 
 (defn gt-transcripts
   "Selects the newest transcripts labelled GT from the pages in the given document."
@@ -266,9 +266,12 @@
          (.runCitLabHtrTraining (get-conn))
          (Integer/parseInt))))
 
+(defn- tsKey [ts]
+  (if (string? ts) ts (:key ts)))
+
 (defn accuracy
   "Computes word- and character-error rates between two transcripts."
-  [refKey hypKey]
-  (->> (str/split (.computeWer (get-conn) refKey hypKey) #"\n")
+  [gt hyp]
+  (->> (str/split (.computeWer (get-conn) (tsKey gt) (tsKey hyp)) #"\n")
        (partition 2)
        (reduce (fn [m [a b]] (assoc m (keyword a) (Float/parseFloat b))) {})))
