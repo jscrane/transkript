@@ -145,18 +145,24 @@
         (map remove-nils)))
   ([] (jobs {})))
 
+(defn- jobId [job]
+  (cond
+    (integer? job) (str job)
+    (string? job) job
+    :else (:jobId job)))
+
 (defn job
   "Gets a job's details."
-  [jobId]
-  (->> (str jobId)
+  [job]
+  (->> (jobId job)
        (.getJob (get-conn))
        (from-java)
        (remove-nils)))
 
 (defn cancel
   "Cancels a running job."
-  [jobId]
-  (.killJob (get-conn) (str jobId)))
+  [job]
+  (.killJob (get-conn) (jobId job)))
 
 (defn status
   "Gets a job's status."
@@ -165,17 +171,17 @@
 
 (defn wait
   "Waits for jobs to complete."
-  ([jobIds millis]
-   (loop [jobIds (if (integer? jobIds) [jobIds] jobIds)
+  ([jobs millis]
+   (loop [jobs (if (integer? jobs) [jobs] jobs)
           finished []]
-     (let [jobs (map job jobIds)
-           u (map :jobIdAsInt (filter (comp not :finished) jobs))
-           f (concat finished (filter :finished jobs))]
-       (if (empty? u)
-         f
+     (let [update (map job jobs)
+           unfinished (map :jobIdAsInt (filter (comp not :finished) update))
+           finished (concat finished (filter :finished update))]
+       (if (empty? unfinished)
+         finished
          (do
            (Thread/sleep millis)
-           (recur u f))))))
+           (recur unfinished finished))))))
   ([jobIds]
    (wait jobIds 3000)))
 
@@ -191,8 +197,7 @@
          mm (str (name method) "LaJob")]
      (->> (.analyzeLayout (get-conn) (colId coll) dsds block-seg line-seg word-seg false false mm (ParameterMap.))
           (from-java)
-          (map :jobId)
-          (map #(Integer/parseInt %)))))
+          (map :jobIdAsInt))))
   ([method pages params]
    (analyse-layout (get-collection) method pages params)))
 
@@ -216,9 +221,10 @@
   (if (integer? model) model (:htrId model)))
 
 (defn run-model
-  "Runs a model."
+  "Runs a model over a page or pages from a collection, with an optional dictionary."
   ([coll model pages dict]
-   (Integer/parseInt (.runCitLabHtr (get-conn) (colId coll) (dsd pages) (htrId model) dict)))
+   (let [pages (if (map? pages) [pages] pages)]
+     (Integer/parseInt (.runCitLabHtr (get-conn) (colId coll) (dsd pages) (htrId model) dict))))
   ([coll model pages]
    (run-model coll model pages @dictionary))
   ([model pages]
@@ -270,8 +276,14 @@
   (if (string? ts) ts (:key ts)))
 
 (defn accuracy
-  "Computes word- and character-error rates between two transcripts."
-  [gt hyp]
-  (->> (str/split (.computeWer (get-conn) (tsKey gt) (tsKey hyp)) #"\n")
-       (partition 2)
-       (reduce (fn [m [a b]] (assoc m (keyword a) (Float/parseFloat b))) {})))
+  "Computes word- and character-error rates between two transcripts, the \"ground truth\" and the \"hypothesis\".
+  Alternatively if given a sequence of transcripts, picks the newest \"ground truth\" and \"hypothesis\" from them."
+  ([gt hyp]
+   (let [gtk (tsKey gt) htk (tsKey hyp)]
+     (->> (str/split (.computeWer (get-conn) gtk htk) #"\n")
+          (partition 2)
+          (reduce (fn [m [a b]] (assoc m (keyword a) (Float/parseFloat b))) {:gt gtk, :hyp htk}))))
+  ([ts]
+   (let [hyp (newest (with-status :IN_PROGRESS ts))
+         gt (newest (with-status :GT ts))]
+     (accuracy gt hyp))))
