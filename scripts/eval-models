@@ -1,11 +1,11 @@
 #!/usr/bin/env boot
 
-(set-env! :dependencies '[[transkript/transkript "0.1.6-SNAPSHOT"]])
+(set-env! :dependencies '[[transkript/transkript "0.1.7-SNAPSHOT"]])
 (require '[transkript.core :as tk])
 (require '[boot.cli :refer [defclifn]])
 
 (defn eval-model [model page]
-  (let [job (first (tk/wait (tk/run-model model page)))
+  (let [job (tk/wait (tk/run-model model page))
         res {:model (:name model) :job (:jobIdAsInt job)}]
     (if (:success job)
       (let [ts (first (tk/transcripts (:docId page) [(:pageNr page)]))]

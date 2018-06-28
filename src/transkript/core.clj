@@ -64,8 +64,8 @@
 
 (defn use-model
   "Sets the default model."
-  [model]
-  (reset! model model))
+  [m]
+  (reset! model m))
 
 (def dictionary (atom nil))
 
@@ -170,10 +170,22 @@
   (keyword (:state (job jobId))))
 
 (defn wait
-  "Waits for jobs to complete."
+  "Waits for a job to complete."
+  ([j millis]
+   (loop []
+     (let [state (job j)]
+       (if (:finished state)
+         state
+         (do
+           (Thread/sleep millis)
+           (recur))))))
+  ([j]
+   (wait j 3000)))
+
+(defn wait-all
+  "Waits for multiple jobs to complete."
   ([jobs millis]
-   (loop [jobs (if (integer? jobs) [jobs] jobs)
-          finished []]
+   (loop [jobs jobs finished []]
      (let [update (map job jobs)
            unfinished (map :jobIdAsInt (filter (comp not :finished) update))
            finished (concat finished (filter :finished update))]
@@ -183,7 +195,7 @@
            (Thread/sleep millis)
            (recur unfinished finished))))))
   ([jobIds]
-   (wait jobIds 3000)))
+   (wait-all jobIds 3000)))
 
 (defn- dsdt [{:keys [docId pageId tsId], :or {tsId (int -1)}}]
   (doto (DocumentSelectionDescriptor. docId)
@@ -264,9 +276,9 @@
 
 (defn train-model
   "Trains a model."
-  [modelName description train test & opts]
+  [name description train test & opts]
   (let [tr (map dsdt train) ts (map dsdt test)]
-    (->> {:colId (colId (get-collection)) :language (:language @config) :modelName modelName :train tr :test ts :description description}
+    (->> {:colId (colId (get-collection)) :language (:language @config) :modelName name :train tr :test ts :description description}
          (merge opts)
          (to-java CitLabHtrTrainConfig)
          (.runCitLabHtrTraining (get-conn))
