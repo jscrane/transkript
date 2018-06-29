@@ -148,4 +148,4 @@ provided, and the most-recent labelled "IN PROGRESS" and "GT" are chosen.
 
 ## License
 
-See the file [License](https://github.com/jscrane/transkript/LICENSE).
+See the file [License](https://github.com/jscrane/transkript/blob/master/LICENSE).
