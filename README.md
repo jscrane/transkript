@@ -39,10 +39,10 @@ Optionally override settings in the config at login time (or just provide them a
 ```
 
 Entities returned from the server are converted into nested maps. Select returns 
-a subset of the maps' keys.
+a subset of a map's keys.
 
 Setting a default collection makes future API calls more concise. In either case,
-the collection may be specified by its _:colId_ or using the full entity. (This
+a collection may be specified by its _:colId_ or using the corresponding map. (This
 convention also applies to other APIs, see below.)
 
 ```clojure
@@ -68,9 +68,9 @@ convention also applies to other APIs, see below.)
 
 If no collection is specified, the documents returned are from the default.
 A document's pages may be retrieved (and the document specified either by
-_:docId_ using the entity itself).
+_:docId_ or map.
 
-(Note that pages have both _:pageId_ and _:pageNr_. The system prefers the
+Note that pages have both _:pageId_ and _:pageNr_. (The system prefers the
 former.)
 
 ```clojure
@@ -100,8 +100,7 @@ former.)
   :failed false}
 ```
 
-Text-recognition models are also associated with a collection. There is a
-default model.
+Text-recognition models are also associated with a collection. A default model may also be set.
 
 Running a model is asynchronous and returns a job identifier which may be
 used to query the state of the job, cancel it or wait for it to finish.
@@ -137,7 +136,7 @@ A default language is set in the config, and may be changed.
 ```
 
 A model's accuracy may be evaluated by comparing its output ("hypothesis")
-against a provided transcript ("ground truth"). The word- and character-error
+against a known transcript ("ground truth"). Word- and character-error
 rates are returned, as are the keys of the transcripts compared.
 
 Two forms of this API are provided. In the first one, the transcripts are
