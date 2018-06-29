@@ -66,12 +66,12 @@ convention also applies to other APIs, see below.)
 => ({:pageId 798149} {:pageId 798150} {:pageId 798151})
 ```
 
-If no collection is specified, the documents returned are from the default.
+If no collection is given, ocuments returned are from the default one.
 A document's pages may be retrieved (and the document specified either by
-_:docId_ or map.
+_:docId_ or map).
 
 Note that pages have both _:pageId_ and _:pageNr_. (The system prefers the
-former.)
+former and an API is provided to convert to that.)
 
 ```clojure
 (tk/select [:name :htrId] (tk/models))
@@ -100,7 +100,7 @@ former.)
   :failed false}
 ```
 
-Text-recognition models are also associated with a collection. A default model may also be set.
+A Text-recognition model is associated with a collection. A default model may also be set.
 
 Running a model is asynchronous and returns a job identifier which may be
 used to query the state of the job, cancel it or wait for it to finish.
@@ -127,16 +127,15 @@ finish is provided.
 => :RUNNING
 ```
 
-New models may be trained using transcripts labelled "ground truth".
-A default language is set in the config, and may be changed.
+New models may be trained using transcripts labelled "ground truth" and an API is provided to find such transcripts in a document's pages. A default language is set in the config, and may be changed.
 
 ```clojure
 (tk/accuracy (first (tk/transcripts 67884 [1])))
 => {:gt "IUGKFCZKOPZQQSYQTKEMYKZD", :hyp "ZUGLJCDNORQUAVCSSASJKQHE", :WER 135.65573, :CER 95.60117}
 ```
 
-A model's accuracy may be evaluated by comparing its output ("hypothesis")
-against a known transcript ("ground truth"). Word- and character-error
+When a model has been trained, its accuracy may be evaluated by comparing its output ("hypothesis")
+with a known transcript ("ground truth"). Word- and character-error
 rates are returned, as are the keys of the transcripts compared.
 
 Two forms of this API are provided. In the first one, the transcripts are
@@ -149,4 +148,4 @@ provided, and the most-recent labelled "IN PROGRESS" and "GT" are chosen.
 
 ## License
 
-Copyright © 2018 Stephen Crane.
+See the file [License](https://github.com/jscrane/transkript/LICENSE).
