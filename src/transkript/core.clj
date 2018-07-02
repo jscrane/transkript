@@ -267,7 +267,7 @@
    (run-ocr pages (:typeface @config) (:language @config))))
 
 (defn transcripts
-  "Selects transcripts corresponding to the pages in the given document."
+  "Selects transcripts corresponding to numbered pages in a document."
   [doc pgnums]
   (->> (pages doc)
        (pages-numbered pgnums)

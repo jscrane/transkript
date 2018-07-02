@@ -66,12 +66,25 @@ convention also applies to other APIs, see below.)
 => ({:pageId 798149} {:pageId 798150} {:pageId 798151})
 ```
 
-If no collection is given, ocuments returned are from the default one.
+If no collection is given, documents returned are from the default one.
 A document's pages may be retrieved (and the document specified either by
 _:docId_ or map).
 
 Note that pages have both _:pageId_ and _:pageNr_. (The system prefers the
 former and an API is provided to convert to that.)
+
+```clojure
+(tk/analyse-layout :CITlabAdvanced (tk/pages 50811) {:block-seg true, :line-seg true})
+=> (351020)
+(tk/select [:state :jobIdAsInt] (tk/wait-all [351020 350984]))
+=> ({:state "FINISHED", :jobIdAsInt 351020} {:state "FAILED", :jobIdAsInt 350984})
+```
+
+The first step in processing a new document is to run layout analysis on it, in order
+to discover text elements on each page.
+
+Layout analysis creates one job per page. An API to wait for all of them to
+finish is provided.
 
 ```clojure
 (tk/select [:name :htrId] (tk/models))
@@ -99,21 +112,34 @@ former and an API is provided to convert to that.)
   :userName "jscrane@gmail.com",
   :failed false}
 ```
+If the document is handwritten, the next step is to perform transcription
+using a handwritten-text recognition model.
 
-A Text-recognition model is associated with a collection. A default model may also be set.
+An HTR model is associated with a collection. A default model may be set.
 
 Running a model is asynchronous and returns a job identifier which may be
 used to query the state of the job, cancel it or wait for it to finish.
 
 ```clojure
-(tk/analyse-layout :CITlabAdvanced (tk/pages 50811) {:block-seg true, :line-seg true})
-=> (351020)
-(tk/select [:state :jobIdAsInt] (tk/wait-all [351020 350984]))
-=> ({:state "FINISHED", :jobIdAsInt 351020} {:state "FAILED", :jobIdAsInt 350984})
+(tk/run-ocr (tk/pages 68881))
+=> 353584
+(tk/job 353584)
+=>
+{:description "OCR: Busy",
+ :started "Mon Jul 02 14:01:17 IST 2018",
+ :createTimeFormatted "02.07.2018 14:01:17",
+; lots more stuff ...
+ :jobDataProps {:properties {"typeFace" "COMBINED",
+                             "state" "download",
+                             "path" "/mnt/dea_scratch/TRP/OCR/ocr-68881-8584653302377025848",
+                             "language" "English"}},
+ :parent_batchid 0,
+  :userName "jscrane@gmail.com",
+  :failed false}
 ```
 
-Layout analysis creates one job per page. An API to wait for all of them to
-finish is provided.
+If the document was typeset, transcription is performed using optical character
+recognition, OCR.
 
 ```clojure
 (tk/set-language "German")
@@ -127,7 +153,7 @@ finish is provided.
 => :RUNNING
 ```
 
-New models may be trained using transcripts labelled "ground truth" and an API is provided to find such transcripts in a document's pages. A default language is set in the config, and may be changed.
+New HTR models may be trained using transcripts labelled "ground truth" and an API is provided to find such transcripts in a document's pages. A default language is set in the config, and may be changed.
 
 ```clojure
 (tk/accuracy (first (tk/transcripts 67884 [1])))
