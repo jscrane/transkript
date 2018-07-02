@@ -3,7 +3,8 @@
            (eu.transkribus.core.model.beans TrpTranscriptStatistics TrpTotalTranscriptStatistics CitLabHtrTrainConfig DocumentSelectionDescriptor DocumentSelectionDescriptor$PageDescriptor)
            (eu.transkribus.core.model.beans.rest ParameterMap)
            (java.net URL)
-           (java.util Date))
+           (java.util Date)
+           (eu.transkribus.core.model.beans.enums ScriptType))
   (:require [clojure.edn :as edn]
             [clojure.string :as str])
   (:use [clojure.java.data]
@@ -180,10 +181,12 @@
            (Thread/sleep millis)
            (recur))))))
   ([j]
-   (wait j 3000)))
+   (wait j (:poll @config))))
 
 (defn wait-all
-  "Waits for multiple jobs to complete."
+  "Waits for multiple jobs to complete.
+
+  if not supplied 'millis' defaults to the value of :poll in the config."
   ([jobs millis]
    (loop [jobs jobs finished []]
      (let [update (map job jobs)
@@ -195,15 +198,17 @@
            (Thread/sleep millis)
            (recur unfinished finished))))))
   ([jobIds]
-   (wait-all jobIds 3000)))
+   (wait-all jobIds (:poll @config))))
 
 (defn- dsdt [{:keys [docId pageId tsId], :or {tsId (int -1)}}]
   (doto (DocumentSelectionDescriptor. docId)
     (.addPage (DocumentSelectionDescriptor$PageDescriptor. pageId tsId))))
 
-;; method may be one of :CITlabAdvanced, :Cvl or :NcsrOld
 (defn analyse-layout
-  "Runs layout analysis."
+  "Runs layout analysis.
+
+  'method' may be one of :CITlabAdvanced, :Cvl or :NcsrOld
+  'params' is a map with possible keys :block-seg :line-seg :word-seg"
   ([coll method pages {:keys [block-seg line-seg word-seg], :or {block-seg false line-seg false word-seg false}}]
    (let [dsds (map dsdt pages)
          mm (str (name method) "LaJob")]
@@ -211,7 +216,9 @@
           (from-java)
           (map :jobIdAsInt))))
   ([method pages params]
-   (analyse-layout (get-collection) method pages params)))
+   (analyse-layout (get-collection) method pages params))
+  ([method pages]
+   (analyse-layout method pages {})))
 
 (defn models
   "Gets the models belonging to a collection."
@@ -233,7 +240,7 @@
   (if (integer? model) model (:htrId model)))
 
 (defn run-model
-  "Runs a model over a page or pages from a collection, with an optional dictionary."
+  "Runs an HTR model over a page or pages from a document in a collection, with an optional dictionary."
   ([coll model pages dict]
    (let [pages (if (map? pages) [pages] pages)]
      (Integer/parseInt (.runCitLabHtr (get-conn) (colId coll) (dsd pages) (htrId model) dict))))
@@ -243,6 +250,21 @@
    (run-model (get-collection) model pages))
   ([pages]
    (run-model (get-collection) (get-model) pages)))
+
+(defn run-ocr
+  "Runs OCR on one or more pages from a document in a collection."
+  ([coll pages typeface languages]
+   (let [pages (if (map? pages) [pages] pages)
+         languages (if (coll? languages) (str/join "," languages) languages)
+         doc (:docId (first pages))
+         pagestr (str/join "," (map :pageNr pages))]
+     (Integer/parseInt (.runOcr (get-conn) (colId coll) (docId doc) pagestr (ScriptType/fromString typeface) languages))))
+  ([pages typeface languages]
+   (run-ocr (get-collection) pages typeface languages))
+  ([pages typeface]
+   (run-ocr pages typeface (:language @config)))
+  ([pages]
+   (run-ocr pages (:typeface @config) (:language @config))))
 
 (defn transcripts
   "Selects transcripts corresponding to the pages in the given document."

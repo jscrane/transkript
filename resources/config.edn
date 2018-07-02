@@ -3,4 +3,6 @@
  :password "XXXXXXXXXXXX"
  :server   "https://transkribus.eu/TrpServer"
  :language "English"
+ :typeface "Combined"
+ :poll     3000
  }
