@@ -4,7 +4,9 @@
            (eu.transkribus.core.model.beans.rest ParameterMap)
            (java.net URL)
            (java.util Date)
-           (eu.transkribus.core.model.beans.enums ScriptType))
+           (eu.transkribus.core.model.beans.enums ScriptType)
+           (java.io File)
+           (eu.transkribus.core.io LocalDocReader LocalDocReader$DocLoadConfig))
   (:require [clojure.edn :as edn]
             [clojure.string :as str])
   (:use [clojure.java.data]
@@ -321,3 +323,13 @@
    (let [hyp (newest (with-status :IN_PROGRESS ts))
          gt (newest (with-status :GT ts))]
      (accuracy gt hyp))))
+
+(defn import-document
+  "Imports a new document from a set of images in a local folder."
+  ([coll title ^String folder]
+   (LocalDocReader/checkInputDir (File. folder))
+   (let [doc (LocalDocReader/load folder (LocalDocReader$DocLoadConfig.) nil)]
+     (-> doc (.getMd) (.setTitle title))
+     (-> (get-conn) (.uploadTrpDoc (colId coll) doc nil) (.getJobId))))
+  ([title folder]
+   (import-document (get-collection) title folder)))
