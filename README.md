@@ -8,7 +8,12 @@ A Clojure client library for [Transkribus](https://github.com/Transkribus).
 (require '[transkript.core :as tk])
 (tk/load-config "config.edn")
 =>
-{:username "jscrane@gmail.com", :password "XXXXXXXXX", :server "https://transkribus.eu/TrpServer", :language "English"}
+{:username "jscrane@gmail.com",
+ :password "XXXXXXXXXXXX",
+ :server "https://transkribus.eu/TrpServer",
+ :language "English",
+ :typeface "Combined",
+ :poll 3000}
 (tk/login {:password "my password"})
 ```
 
