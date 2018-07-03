@@ -9,7 +9,27 @@
         </encoder>
     </appender>
 
-    <logger name="eu.transkribus.core.util.JaxbUtils" level="info" additivity="false">
+    <logger name="eu.transkribus.core.util" level="info" additivity="false">
+        <appender-ref ref="STDOUT"/>
+    </logger>
+
+    <logger name="eu.transkribus.core.TrpFimgStoreConf" level="info" additivity="false">
+        <appender-ref ref="STDOUT"/>
+    </logger>
+
+    <logger name="eu.transkribus.core.io.DocExporter" level="info" additivity="false">
+        <appender-ref ref="STDOUT"/>
+    </logger>
+
+    <logger name="eu.transkribus.core.model.beans.customtags.CustomTagFactory" level="info" additivity="false">
+        <appender-ref ref="STDOUT"/>
+    </logger>
+
+    <logger name="org.apache.commons.beanutils" level="info" additivity="false">
+        <appender-ref ref="STDOUT"/>
+    </logger>
+
+    <logger name="org.apache.http" level="info" additivity="false">
         <appender-ref ref="STDOUT"/>
     </logger>
 

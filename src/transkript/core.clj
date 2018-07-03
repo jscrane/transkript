@@ -6,7 +6,8 @@
            (java.util Date)
            (eu.transkribus.core.model.beans.enums ScriptType)
            (java.io File)
-           (eu.transkribus.core.io LocalDocReader LocalDocReader$DocLoadConfig))
+           (eu.transkribus.core.io LocalDocReader LocalDocReader$DocLoadConfig DocExporter)
+           (org.dea.fimgstoreclient.beans ImgType))
   (:require [clojure.edn :as edn]
             [clojure.string :as str])
   (:use [clojure.java.data]
@@ -121,10 +122,13 @@
 (defn- docId [doc]
   (if (integer? doc) doc (:docId doc)))
 
+(defn- document [coll doc num-transcripts]
+  (.getTrpDoc (get-conn) (colId coll) (docId doc) num-transcripts))
+
 (defn pages
   "Gets a document's pages."
-  ([coll doc numTranscripts]
-   (->> (.getTrpDoc (get-conn) (colId coll) (docId doc) numTranscripts)
+  ([coll doc num-transcripts]
+   (->> (document coll doc num-transcripts)
         (.getPages)
         (from-java)
         (map remove-nils)
@@ -333,3 +337,14 @@
      (-> (get-conn) (.uploadTrpDoc (colId coll) doc nil) (.getJobId))))
   ([title folder]
    (import-document (get-collection) title folder)))
+
+(defn export-document
+  "Exports a document to the local filesystem. All pages and images (at original resolution) are exported."
+  ([coll doc folder]
+   (let [doc (document coll doc -1)
+         pagenums (into #{} (map #(.getPageNr %) (.getPages doc)))]
+     (-> (DocExporter.)
+         (.writeRawDoc doc folder true pagenums true true false false nil ImgType/orig)
+         (.getAbsolutePath))))
+  ([doc folder]
+   (export-document (get-collection) doc folder)))
