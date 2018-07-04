@@ -338,16 +338,33 @@
   ([title folder]
    (import-document (get-collection) title folder)))
 
+; workaround off-by-one error in exportDoc() (issue #30)
+(defn- pagenums [pages]
+  (if (nil? pages)
+    nil
+    (into #{} (map (comp dec int) pages))))
+
 (defn export-document
   "Exports a document to the local filesystem."
-  ([coll doc folder {:keys [overwrite images pages alto alto-word image-type]
-                     :or   {overwrite false images false pages true alto false alto-word false image-type nil}}]
-   (let [doc (document coll doc -1)
-         pagenums (into #{} (map #(.getPageNr %) (.getPages doc)))]
+  ([coll doc folder {:keys [overwrite images image-type page-xml pages alto alto-word]
+                     :or   {overwrite false images false image-type nil page-xml true alto false alto-word false}}]
+   (let [doc (document coll doc -1)]
      (-> (DocExporter.)
-         (.writeRawDoc doc folder overwrite pagenums images pages alto alto-word nil image-type)
+         (.writeRawDoc doc folder overwrite (pagenums pages) images page-xml alto alto-word nil image-type)
          (.getAbsolutePath))))
   ([coll doc folder]
    (export-document coll doc folder {:overwrite true :images true :pages true :image-type ImgType/orig}))
   ([doc folder]
    (export-document (get-collection) doc folder)))
+
+(defn export-text
+  "Exports transcribed text to the local filesystem."
+  ([coll doc file {:keys [create-title word-based line-breaks pages]
+                   :or   {create-title false word-based false line-breaks false}}]
+   (let [doc (document coll doc -1)]
+     (-> (DocExporter.)
+         (.writeTxt doc file (pagenums pages) create-title word-based line-breaks))))
+  ([coll doc folder]
+   (export-text coll doc folder {}))
+  ([doc folder]
+   (export-text (get-collection) doc folder)))
