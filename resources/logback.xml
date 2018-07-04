@@ -13,6 +13,10 @@
         <appender-ref ref="STDOUT"/>
     </logger>
 
+    <logger name="eu.transkribus.core.util.SysUtils" level="warn" additivity="false">
+        <appender-ref ref="STDOUT"/>
+    </logger>
+
     <logger name="eu.transkribus.core.TrpFimgStoreConf" level="info" additivity="false">
         <appender-ref ref="STDOUT"/>
     </logger>

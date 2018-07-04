@@ -341,7 +341,7 @@
 (defn- page-indices [pages]
   (if (nil? pages)
     nil
-    (into #{} (map (comp dec int) pages))))
+    (into #{} (map (comp int dec) pages))))
 
 (defn export-document
   "Exports a document to the local filesystem."

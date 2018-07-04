@@ -2,10 +2,14 @@
 
 A Clojure client library for [Transkribus](https://github.com/Transkribus).
 
+This is not an exhaustive implementation of the [Transkribus Client API](https://github.com/Transkribus/TranskribusClient), 
+just enough to support some scripting applications.
+ 
 ## Usage
 
 ```clojure
 (require '[transkript.core :as tk])
+=> nil
 (tk/load-config "config.edn")
 =>
 {:username "jscrane@gmail.com",
@@ -172,7 +176,51 @@ rates are returned, as are the keys of the transcripts compared.
 Two forms of this API are provided. In the first one, the transcripts are
 explicitly specified (or their keys). In the second, a set of transcripts is
 provided, and the most-recent labelled "IN PROGRESS" and "GT" are chosen.
+
+```clojure
+(tk/import-document 18751 "foo" "/home/steve/foo")
+; lots of chatty debug info
+=> 355066
+(tk/status 355066)
+=> :RUNNING
+(tk/wait 355066)
+=>
+{
+ ; abridged list of job properties
+ :started "Wed Jul 04 12:49:43 IST 2018",
+ :docId 69485,
+ :type "Create Document",
+ :colId 18751,
+ :jobImpl "UploadImportJob",
+}
+```
+
+A new document may be imported into a collection (or the current 
+one) using a set of images in a folder on the local filesystem.
+
+The _:docId_ key in the job description returned after the job
+has completed contains the new document's identifier.
+
+```clojure
+(tk/export-document 18751 68881 "/tmp/foo" {:pages #{1 3 5} :overwrite true})
+; some chatty debug info
+=> "/tmp/foo"
+```
+
+A document may also be exported to a directory on the local
+filesystem. A map containing optional parameters which control 
+the output may be passed. If omitted, images and pages are
+exported.
  
+```clojure
+(tk/export-text 18751 68881 "/tmp/foo.txt")
+; some chatty debug info
+=> nil
+```
+
+Transcripted text associated with a document may be exported to
+a flat file in the local filesystem.
+
 ```clojure
 (tk/logout)
 ```
