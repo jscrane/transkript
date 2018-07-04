@@ -339,12 +339,15 @@
    (import-document (get-collection) title folder)))
 
 (defn export-document
-  "Exports a document to the local filesystem. All pages and images (at original resolution) are exported."
-  ([coll doc folder]
+  "Exports a document to the local filesystem."
+  ([coll doc folder {:keys [overwrite images pages alto alto-word image-type]
+                     :or   {overwrite false images false pages true alto false alto-word false image-type nil}}]
    (let [doc (document coll doc -1)
          pagenums (into #{} (map #(.getPageNr %) (.getPages doc)))]
      (-> (DocExporter.)
-         (.writeRawDoc doc folder true pagenums true true false false nil ImgType/orig)
+         (.writeRawDoc doc folder overwrite pagenums images pages alto alto-word nil image-type)
          (.getAbsolutePath))))
+  ([coll doc folder]
+   (export-document coll doc folder {:overwrite true :images true :pages true :image-type ImgType/orig}))
   ([doc folder]
    (export-document (get-collection) doc folder)))
