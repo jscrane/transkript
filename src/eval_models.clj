@@ -2,7 +2,8 @@
   (:require [transkript.core :as tk]
             [transkript.util :as tu]
             [clojure.string :as string]
-            [cli :refer [validate-args]]))
+            [cli :refer [validate-args]])
+  (:gen-class))
 
 (def opts
   [["-u" "--username NAME" "User's Name"]

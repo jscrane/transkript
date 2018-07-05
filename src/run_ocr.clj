@@ -3,7 +3,8 @@
             [transkript.util :as tu]
             [cli :refer [validate-args]]
             [clojure.string :as string])
-  (:import (java.io File)))
+  (:import (java.io File))
+  (:gen-class))
 
 (def opts
   [["-u" "--username NAME" "User's Name"]
