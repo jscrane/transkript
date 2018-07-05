@@ -1,4 +1,4 @@
-(defproject transkript "0.1.9-SNAPSHOT"
+(defproject transkript "0.1.10-SNAPSHOT"
   :description "A Clojure client API for Transkribus"
   :url "https://github.com/jscrane/transkript"
   :license {:name "Eclipse Public License 2.0"

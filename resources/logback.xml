@@ -25,6 +25,10 @@
         <appender-ref ref="STDOUT"/>
     </logger>
 
+    <logger name="eu.transkribus.client.io.ASingleDocUpload" level="info" additivity="false">
+        <appender-ref ref="STDOUT"/>
+    </logger>
+
     <logger name="eu.transkribus.core.model.beans.customtags.CustomTagFactory" level="info" additivity="false">
         <appender-ref ref="STDOUT"/>
     </logger>

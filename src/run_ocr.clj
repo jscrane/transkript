@@ -7,6 +7,7 @@
 (def opts
   [["-u" "--username NAME" "User's Name"]
    ["-p" "--password PASS" "User's Password"]
+   ["-t" "--typeface FACE" "OCR Typeface to use" :default "Combined"]
    ["-h" "--help"]])
 
 (defn usage [options-summary]
@@ -47,7 +48,8 @@
     (if exit-message
       (println exit-message)
       (let [[coll docname folder] arguments
-            typeface "Normal with long S"]
+            typeface (:typeface options)]
+
         (tk/load-config "config.edn")
         (tk/login options)
         (tk/use-collection (find-collection coll))
