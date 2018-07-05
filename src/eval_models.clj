@@ -9,12 +9,14 @@
    ["-h" "--help"]])
 
 (defn usage [options-summary]
-  (->> ["Usage: program-name [options] Collection Document"
+  (->> ["Runs all of the Models associated with a Collection on the first page of a Document."
+        ""
+        "Usage: eval-models [options] Collection Document"
         ""
         "Options:"
         options-summary
         ""
-        "Collection and Document are Collection and Document names."]
+        "Collection and Document are Collection and Document names or IDs."]
        (string/join \newline)))
 
 (defn error-msg [errors]
@@ -36,16 +38,22 @@
         (merge res (tk/accuracy ts)))
       (assoc res :failed true))))
 
+(defn find-collection [coll]
+  (first (filter #(or (= coll (:colName %)) (= coll (str (:colId %)))) (tk/collections))))
+
+(defn find-document [doc]
+  (first (filter #(or (= doc (:title %)) (= doc (str (:docId %)))) (tk/documents))))
+
 (defn -main [& args]
   (let [{:keys [arguments options exit-message]} (validate-args args)]
     (if exit-message
       (println exit-message)
-      (let [[colname docname] arguments]
+      (let [[coll doc] arguments]
         (tk/load-config "config.edn")
         (tk/login options)
-        (tk/use-collection (first (filter #(= colname (:colName %)) (tk/collections))))
-        (let [doc (first (filter #(= docname (:title %)) (tk/documents)))
-              page (first (tk/pages-numbered [1] (tk/pages doc)))]
+        (tk/use-collection (find-collection coll))
+        (let [document (find-document doc)
+              page (first (tk/pages-numbered [1] (tk/pages document)))]
           (doseq [m (tk/models)]
             (println (eval-model m page))))
         (tk/logout)))))
