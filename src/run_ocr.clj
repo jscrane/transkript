@@ -1,7 +1,7 @@
 (ns run-ocr
   (:require [transkript.core :as tk]
-            [clojure.string :as string]
-            [clojure.tools.cli :as cli :refer [parse-opts]])
+            [cli :refer [validate-args]]
+            [clojure.string :as string])
   (:import (java.io File)))
 
 (def opts
@@ -24,17 +24,6 @@
         "Folder contains the images on which the new Document is based."]
        (string/join \newline)))
 
-(defn error-msg [errors]
-  (str "Errors: \n\n" (string/join \newline errors)))
-
-(defn validate-args [args]
-  (let [{:keys [options arguments errors summary]} (cli/parse-opts args opts)]
-    (cond
-      (:help options) {:exit-message (usage summary)}
-      errors {:exit-message (error-msg errors)}
-      (and (= 3 (count arguments))) {:arguments arguments :options options}
-      :else {:exit-message (usage summary)})))
-
 (defn find-collection [coll]
   (first (filter #(or (= coll (:colName %)) (= coll (str (:colId %)))) (tk/collections))))
 
@@ -44,7 +33,7 @@
     (throw (Exception. (str msg (:jobId job))))))
 
 (defn -main [& args]
-  (let [{:keys [arguments options exit-message]} (validate-args args)]
+  (let [{:keys [arguments options exit-message]} (validate-args args 3 opts usage)]
     (if exit-message
       (println exit-message)
       (let [[coll docname folder] arguments

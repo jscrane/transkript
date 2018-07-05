@@ -1,7 +1,7 @@
 (ns eval-models
   (:require [transkript.core :as tk]
             [clojure.string :as string]
-            [clojure.tools.cli :as cli :refer [parse-opts]]))
+            [cli :refer [validate-args]]))
 
 (def opts
   [["-u" "--username NAME" "User's Name"]
@@ -19,17 +19,6 @@
         "Collection and Document are Collection and Document names or IDs."]
        (string/join \newline)))
 
-(defn error-msg [errors]
-  (str "Errors: \n\n" (string/join \newline errors)))
-
-(defn validate-args [args]
-  (let [{:keys [options arguments errors summary]} (cli/parse-opts args opts)]
-    (cond
-      (:help options) {:exit-message (usage summary)}
-      errors {:exit-message (error-msg errors)}
-      (and (= 2 (count arguments))) {:arguments arguments :options options}
-      :else {:exit-message (usage summary)})))
-
 (defn eval-model [model page]
   (let [job (tk/wait (tk/run-model model page))
         res {:model (:name model) :job (:jobIdAsInt job)}]
@@ -45,7 +34,7 @@
   (first (filter #(or (= doc (:title %)) (= doc (str (:docId %)))) (tk/documents))))
 
 (defn -main [& args]
-  (let [{:keys [arguments options exit-message]} (validate-args args)]
+  (let [{:keys [arguments options exit-message]} (validate-args args 2 opts usage)]
     (if exit-message
       (println exit-message)
       (let [[coll doc] arguments]
