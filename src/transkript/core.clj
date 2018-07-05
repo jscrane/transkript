@@ -258,7 +258,10 @@
    (run-model (get-collection) (get-model) pages)))
 
 (defn run-ocr
-  "Runs OCR on one or more pages from a document in a collection."
+  "Runs OCR on one or more pages from a document in a collection.
+
+  'typeface' may be one of 'Handwritten', 'Normal', 'Normal with long S', 'Combined'
+  'languages' may be a single language or a collection."
   ([coll pages typeface languages]
    (let [pages (if (map? pages) [pages] pages)
          languages (if (coll? languages) (str/join "," languages) languages)
@@ -363,7 +366,7 @@
    (let [doc (document coll doc -1)]
      (-> (DocExporter.)
          (.writeTxt doc file (page-indices pages) create-title word-based line-breaks))))
-  ([coll doc folder]
-   (export-text coll doc folder {}))
-  ([doc folder]
-   (export-text (get-collection) doc folder)))
+  ([coll doc file]
+   (export-text coll doc file {}))
+  ([doc file]
+   (export-text (get-collection) doc file)))
