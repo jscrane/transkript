@@ -1,30 +1,3 @@
-#!/usr/bin/env boot
+#!/usr/bin/env bash
 
-(set-env! :dependencies '[[transkript/transkript "0.1.7-SNAPSHOT"]])
-(require '[transkript.core :as tk])
-(require '[boot.cli :refer [defclifn]])
-
-(defn eval-model [model page]
-  (let [job (tk/wait (tk/run-model model page))
-        res {:model (:name model) :job (:jobIdAsInt job)}]
-    (if (:success job)
-      (let [ts (first (tk/transcripts (:docId page) [(:pageNr page)]))]
-        (merge res (tk/accuracy ts)))
-      (assoc res :failed true))))
-
-(defclifn -main
-  [c colname NAME str "The name of the Collection to use."
-   d docname NAME str "The name of the Document to use."]
-  (let [colname (or "Summer Project" (:colname *opts*))
-        docname (or "Summer Project" (:docname *opts*))]
-
-    (tk/load-config "config.edn")
-    (tk/login {:password "foobar"})
-
-    (tk/use-collection (first (filter #(= colname (:colName %)) (tk/collections))))
-    (let [doc (first (filter #(= docname (:title %)) (tk/documents)))
-          page (first (tk/pages-numbered [1] (tk/pages doc)))]
-      (doseq [m (tk/models)]
-        (println (eval-model m page))))
-
-    (tk/logout)))
+java -cp target/transkript-0.1.11-SNAPSHOT-standalone.jar eval_models "$@"
