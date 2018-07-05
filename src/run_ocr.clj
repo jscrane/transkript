@@ -1,5 +1,6 @@
 (ns run-ocr
   (:require [transkript.core :as tk]
+            [transkript.util :as tu]
             [cli :refer [validate-args]]
             [clojure.string :as string])
   (:import (java.io File)))
@@ -24,9 +25,6 @@
         "Folder contains the images on which the new Document is based."]
        (string/join \newline)))
 
-(defn find-collection [coll]
-  (first (filter #(or (= coll (:colName %)) (= coll (str (:colId %)))) (tk/collections))))
-
 (defn assert-success [job msg]
   (if (:success job)
     job
@@ -41,7 +39,7 @@
 
         (tk/load-config "config.edn")
         (tk/login options)
-        (tk/use-collection (find-collection coll))
+        (tk/use-collection (tu/find-collection coll))
 
         (-> (tk/import-document docname folder)
             (tk/wait)

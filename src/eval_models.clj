@@ -1,5 +1,6 @@
 (ns eval-models
   (:require [transkript.core :as tk]
+            [transkript.util :as tu]
             [clojure.string :as string]
             [cli :refer [validate-args]]))
 
@@ -27,12 +28,6 @@
         (merge res (tk/accuracy ts)))
       (assoc res :failed true))))
 
-(defn find-collection [coll]
-  (first (filter #(or (= coll (:colName %)) (= coll (str (:colId %)))) (tk/collections))))
-
-(defn find-document [doc]
-  (first (filter #(or (= doc (:title %)) (= doc (str (:docId %)))) (tk/documents))))
-
 (defn -main [& args]
   (let [{:keys [arguments options exit-message]} (validate-args args 2 opts usage)]
     (if exit-message
@@ -40,8 +35,8 @@
       (let [[coll doc] arguments]
         (tk/load-config "config.edn")
         (tk/login options)
-        (tk/use-collection (find-collection coll))
-        (let [document (find-document doc)
+        (tk/use-collection (tu/find-collection coll))
+        (let [document (tu/find-document doc)
               page (first (tk/pages-numbered [1] (tk/pages document)))]
           (doseq [m (tk/models)]
             (println (eval-model m page))))
