@@ -7,7 +7,8 @@
            (eu.transkribus.core.model.beans.enums ScriptType)
            (java.io File)
            (eu.transkribus.core.io LocalDocReader LocalDocReader$DocLoadConfig DocExporter)
-           (org.dea.fimgstoreclient.beans ImgType))
+           (org.dea.fimgstoreclient.beans ImgType)
+           (java.text NumberFormat))
   (:require [clojure.edn :as edn]
             [clojure.string :as str])
   (:use [clojure.java.data]
@@ -318,6 +319,9 @@
 (defn- tsKey [ts]
   (if (string? ts) ts (:key ts)))
 
+(defn- parseResult [s]
+  (.parse (NumberFormat/getPercentInstance) s))
+
 (defn accuracy
   "Computes word- and character-error rates between two transcripts, the \"ground truth\" and the \"hypothesis\".
   Alternatively if given a sequence of transcripts, picks the newest \"ground truth\" and \"hypothesis\" from them."
@@ -325,7 +329,7 @@
    (let [gtk (tsKey gt) htk (tsKey hyp)]
      (->> (str/split (.computeWer (get-conn) gtk htk) #"\n")
           (partition 2)
-          (reduce (fn [m [a b]] (assoc m (keyword a) (Float/parseFloat b))) {:gt gtk, :hyp htk}))))
+          (reduce (fn [m [a b]] (assoc m (keyword a) (parseResult b))) {:gt gtk, :hyp htk}))))
   ([ts]
    (let [hyp (newest (with-status :IN_PROGRESS ts))
          gt (newest (with-status :GT ts))]
