@@ -7,6 +7,8 @@ just enough to support some scripting applications.
  
 ## Usage
 
+### Getting Started
+
 ```clojure
 (require '[transkript.core :as tk])
 => nil
@@ -22,6 +24,8 @@ just enough to support some scripting applications.
 ```
 
 Optionally override settings in the config at login time (or just provide them all).
+
+### Collections and Documents
 
 ```clojure
 (tk/select [:colId :colName] (tk/collections))
@@ -82,6 +86,11 @@ _:docId_ or map).
 Note that pages have both _:pageId_ and _:pageNr_. (The system prefers the
 former and an API is provided to convert to that.)
 
+### Layout Analysis
+
+The first step in processing a new document is to run layout analysis on it, in order
+to discover text elements on each page.
+
 ```clojure
 (tk/analyse-layout :CITlabAdvanced (tk/pages 27808) {:block-seg true, :line-seg true})
 => (351020)
@@ -89,11 +98,15 @@ former and an API is provided to convert to that.)
 => ({:state "FINISHED", :jobIdAsInt 351020} {:state "FAILED", :jobIdAsInt 350984})
 ```
 
-The first step in processing a new document is to run layout analysis on it, in order
-to discover text elements on each page.
-
 Layout analysis creates one job per page. An API to wait for all of them to
 finish is provided.
+
+### HTR
+
+If a document is handwritten, the next step is to perform transcription
+using a handwritten-text recognition model.
+
+An HTR model is associated with a collection. A default model may be set.
 
 ```clojure
 (tk/select [:name :htrId] (tk/models))
@@ -121,16 +134,17 @@ finish is provided.
   :userName "jscrane@gmail.com",
   :failed false}
 ```
-If the document is handwritten, the next step is to perform transcription
-using a handwritten-text recognition model.
-
-An HTR model is associated with a collection. A default model may be set.
 
 Running a model is asynchronous and returns a job identifier which may be
 used to query the state of the job, cancel it or wait for it to finish.
 
+### OCR
+
+If the document was typeset, transcription is performed using optical character
+recognition, OCR.
+
 ```clojure
-(tk/run-ocr (tk/pages 68881))
+(tk/run-ocr (tk/pages 27808))
 => 353584
 (tk/job 353584)
 =>
@@ -147,8 +161,10 @@ used to query the state of the job, cancel it or wait for it to finish.
   :failed false}
 ```
 
-If the document was typeset, transcription is performed using optical character
-recognition, OCR.
+### Model Training
+
+A new HTR model is trained using transcripts labelled "ground truth" and 
+an API is provided to find such transcripts in a document's pages. 
 
 ```clojure
 (tk/set-language "German")
@@ -162,20 +178,27 @@ recognition, OCR.
 => :RUNNING
 ```
 
-New HTR models may be trained using transcripts labelled "ground truth" and an API is provided to find such transcripts in a document's pages. A default language is set in the config, and may be changed.
+A default language is set in the config, and may be changed.
+
+### Model Evaluation
+
+When a model has been trained, its accuracy may be evaluated by comparing its output 
+("hypothesis") with a known transcript ("ground truth"). Word- and character-error
+rates are returned, as are the keys of the transcripts compared.
 
 ```clojure
-(tk/accuracy (first (tk/transcripts 67884 [1])))
-=> {:gt "IUGKFCZKOPZQQSYQTKEMYKZD", :hyp "ZUGLJCDNORQUAVCSSASJKQHE", :WER 135.65573, :CER 95.60117}
+(tk/accuracy (first (tk/transcripts 109622 [1])))
+=> {:gt "VDYMLZAUAHVZOYDWLNVQTJCC", :hyp "WKATZTIKCBQXFNTVCSCXFGKL", :WER 33.203125, :CER 12.966878}
 ```
-
-When a model has been trained, its accuracy may be evaluated by comparing its output ("hypothesis")
-with a known transcript ("ground truth"). Word- and character-error
-rates are returned, as are the keys of the transcripts compared.
 
 Two forms of this API are provided. In the first one, the transcripts are
 explicitly specified (or their keys). In the second, a set of transcripts is
 provided, and the most-recent labelled "IN PROGRESS" and "GT" are chosen.
+
+### Document Import
+
+A new document may be imported into a collection (or the current 
+one) using a set of images in a folder on the local filesystem.
 
 ```clojure
 (tk/import-document 18751 "foo" "/home/steve/foo")
@@ -195,17 +218,10 @@ provided, and the most-recent labelled "IN PROGRESS" and "GT" are chosen.
 }
 ```
 
-A new document may be imported into a collection (or the current 
-one) using a set of images in a folder on the local filesystem.
-
 The _:docId_ key in the job description returned after the job
 has completed contains the new document's identifier.
 
-```clojure
-(tk/export-document 18751 68881 "/tmp/foo" {:pages #{1 3 5} :overwrite true})
-; some chatty debug info
-=> "/tmp/foo"
-```
+### Document Export
 
 A document may also be exported to a directory on the local
 filesystem. A map containing optional parameters which control 
@@ -213,13 +229,21 @@ the output may be passed. If omitted, images and pages are
 exported.
  
 ```clojure
+(tk/export-document 18751 68881 "/tmp/foo" {:pages #{1 3 5} :overwrite true})
+; some chatty debug info
+=> "/tmp/foo"
+```
+
+Transcripted text associated with a document may be exported to
+a flat file in the local filesystem.
+
+```clojure
 (tk/export-text 18751 68881 "/tmp/foo.txt")
 ; some chatty debug info
 => nil
 ```
 
-Transcripted text associated with a document may be exported to
-a flat file in the local filesystem.
+### Logout
 
 ```clojure
 (tk/logout)
