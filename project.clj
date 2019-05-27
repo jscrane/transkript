@@ -5,10 +5,10 @@
             :url  "http://www.eclipse.org/legal/epl-v20.html"}
   :dependencies [[org.clojure/clojure "1.10.0"]
                  [org.clojure/java.data "0.1.1"]
-                 [eu.transkribus/TranskribusCore "0.1.9"]
-                 [eu.transkribus/TranskribusClient "0.1.0"]
+                 [eu.transkribus/TranskribusCore "0.2.3-SNAPSHOT"]
+                 [eu.transkribus/TranskribusClient "0.1.3-SNAPSHOT"]
                  [org.clojure/tools.cli "0.4.2"]]
-  :repositories [["dbis-halvar.uibk.ac.at" "https://dbis-halvar.uibk.ac.at/artifactory/libs-release/"]]
+  :repositories [["dea-artifactory" "https://dbis-halvar.uibk.ac.at/artifactory/libs-release/"]]
   :aot [eval-models, run-ocr]
   :manifest {
              "Specification-Title"    "Java Advanced Imaging Image I/O Tools"
