@@ -8,7 +8,8 @@
            (java.io File)
            (eu.transkribus.core.io LocalDocReader LocalDocReader$DocLoadConfig DocExporter)
            (org.dea.fimgstoreclient.beans ImgType)
-           (java.text NumberFormat))
+           (java.text NumberFormat)
+           (eu.transkribus.core.model.builder ExportCache))
   (:require [clojure.edn :as edn]
             [clojure.string :as str])
   (:use [clojure.java.data]
@@ -320,7 +321,9 @@
   (if (string? ts) ts (:key ts)))
 
 (defn- parseResult [s]
-  (.parse (NumberFormat/getPercentInstance) s))
+  (if (= s "inf")
+    Double/POSITIVE_INFINITY
+    (.parse (NumberFormat/getNumberInstance) s)))
 
 (defn accuracy
   "Computes word- and character-error rates between two transcripts, the \"ground truth\" and the \"hypothesis\".
@@ -350,12 +353,19 @@
     nil
     (into #{} (map (comp int dec) pages))))
 
+(def exporter (atom nil))
+
+(defn- get-exporter []
+  (if @exporter
+    @exporter
+    (reset! exporter (DocExporter. (get-conn) (ExportCache.)))))
+
 (defn export-document
   "Exports a document to the local filesystem."
   ([coll doc folder {:keys [overwrite images image-type page-xml pages alto alto-word]
                      :or   {overwrite false images false image-type nil page-xml true alto false alto-word false}}]
    (let [doc (document coll doc -1)]
-     (-> (DocExporter.)
+     (-> (get-exporter)
          (.writeRawDoc doc folder overwrite (page-indices pages) images page-xml alto alto-word nil image-type)
          (.getAbsolutePath))))
   ([coll doc folder]
@@ -368,7 +378,7 @@
   ([coll doc file {:keys [create-title word-based line-breaks pages]
                    :or   {create-title false word-based false line-breaks false}}]
    (let [doc (document coll doc -1)]
-     (-> (DocExporter.)
+     (-> (get-exporter)
          (.writeTxt doc file (page-indices pages) create-title word-based line-breaks))))
   ([coll doc file]
    (export-text coll doc file {}))
