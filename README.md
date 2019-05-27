@@ -83,7 +83,7 @@ Note that pages have both _:pageId_ and _:pageNr_. (The system prefers the
 former and an API is provided to convert to that.)
 
 ```clojure
-(tk/analyse-layout :CITlabAdvanced (tk/pages 50811) {:block-seg true, :line-seg true})
+(tk/analyse-layout :CITlabAdvanced (tk/pages 27808) {:block-seg true, :line-seg true})
 => (351020)
 (tk/select [:state :jobIdAsInt] (tk/wait-all [351020 350984]))
 => ({:state "FINISHED", :jobIdAsInt 351020} {:state "FAILED", :jobIdAsInt 350984})
@@ -227,4 +227,4 @@ a flat file in the local filesystem.
 
 ## License
 
-See the file [License](https://github.com/jscrane/transkript/blob/master/LICENSE).
+[Eclipse Public License - v 2.0](https://github.com/jscrane/transkript/blob/master/LICENSE)
