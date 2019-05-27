@@ -33,6 +33,10 @@
         <appender-ref ref="STDOUT"/>
     </logger>
 
+    <logger name="eu.transkribus.core.model.beans.JAXBPageTranscript" level="info" additivity="false">
+        <appender-ref ref="STDOUT"/>
+    </logger>
+
     <logger name="org.apache.commons.beanutils" level="info" additivity="false">
         <appender-ref ref="STDOUT"/>
     </logger>
