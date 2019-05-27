@@ -349,8 +349,7 @@
    (import-document (get-collection) title folder)))
 
 (defn- page-indices [pages]
-  (if (nil? pages)
-    nil
+  (if pages
     (into #{} (map (comp int dec) pages))))
 
 (def exporter (atom nil))
