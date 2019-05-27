@@ -358,7 +358,7 @@
 (defn- get-exporter []
   (if @exporter
     @exporter
-    (reset! exporter (DocExporter. (get-conn) (ExportCache.)))))
+    (reset! exporter (DocExporter. (.newFImagestoreGetClient (get-conn)) (ExportCache.)))))
 
 (defn export-document
   "Exports a document to the local filesystem."
